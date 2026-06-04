@@ -1,0 +1,3 @@
+Local URL: http://localhost:5002
+LAN URL: http://192.168.2.111:5002
+Health Check: http://192.168.2.111:5002/health

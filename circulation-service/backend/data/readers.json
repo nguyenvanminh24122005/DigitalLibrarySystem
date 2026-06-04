@@ -1,0 +1,65 @@
+[
+  {
+    "id": 1,
+    "code": "1",
+    "name": "MTun",
+    "email": "123@GMAIL.COM",
+    "phone": "0193121"
+  },
+  {
+    "id": 2,
+    "code": "11",
+    "name": "11",
+    "email": "aa@gmail.com",
+    "phone": "2121"
+  },
+  {
+    "id": 3,
+    "code": "09",
+    "name": "Tuan",
+    "email": "tuan@gmail.com",
+    "phone": "096617431"
+  },
+  {
+    "id": 4,
+    "code": "T354995",
+    "name": "Doc gia Test 354995",
+    "email": "test354995@example.com",
+    "phone": "090354995"
+  },
+  {
+    "id": 5,
+    "code": "RADD958812",
+    "name": "Reader Added 958812",
+    "email": "reader958812@example.com",
+    "phone": "090958812"
+  },
+  {
+    "id": 6,
+    "code": "RNEW958812",
+    "name": "Inline Reader 958812",
+    "email": "rnew958812@local.library",
+    "phone": "Chua cap nhat"
+  },
+  {
+    "id": 7,
+    "code": "0001",
+    "name": "tuan",
+    "email": "0001@local.library",
+    "phone": "Chua cap nhat"
+  },
+  {
+    "id": 8,
+    "code": "RDEL191386",
+    "name": "Delete Reader 191386",
+    "email": "rdel191386@local.library",
+    "phone": "Chua cap nhat"
+  },
+  {
+    "id": 9,
+    "code": "RDEL285274",
+    "name": "Delete Reader 285274",
+    "email": "rdel285274@local.library",
+    "phone": "Chua cap nhat"
+  }
+]

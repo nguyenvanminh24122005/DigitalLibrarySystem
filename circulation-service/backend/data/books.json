@@ -1,0 +1,66 @@
+[
+  {
+    "id": 1,
+    "code": "1",
+    "title": "ae",
+    "author": "21",
+    "category": "2",
+    "status": "AVAILABLE"
+  },
+  {
+    "id": 2,
+    "code": "001",
+    "title": "cuộc chia ly",
+    "author": "Mtun",
+    "category": "1",
+    "status": "AVAILABLE"
+  },
+  {
+    "id": 3,
+    "code": "B354995",
+    "title": "Sach Test 354995",
+    "author": "Tester",
+    "category": "Demo",
+    "status": "AVAILABLE"
+  },
+  {
+    "id": 4,
+    "code": "BADD958812",
+    "title": "Book Added 958812",
+    "author": "Tester",
+    "category": "Smoke",
+    "status": "AVAILABLE"
+  },
+  {
+    "id": 5,
+    "code": "BNEW958812",
+    "title": "Inline Book 958812",
+    "author": "Chua cap nhat",
+    "category": "Chua phan loai",
+    "status": "AVAILABLE"
+  },
+  {
+    "id": 6,
+    "code": "111",
+    "title": "0912",
+    "author": "Chua cap nhat",
+    "category": "Chua phan loai",
+    "status": "AVAILABLE"
+  },
+  {
+    "id": 7,
+    "code": "BDEL191386",
+    "title": "Delete Book 191386",
+    "author": "Chua cap nhat",
+    "category": "Chua phan loai",
+    "status": "AVAILABLE"
+  },
+  {
+    "id": 8,
+    "code": "BDEL285274",
+    "title": "Delete Book 285274",
+    "author": "Chua cap nhat",
+    "category": "Chua phan loai",
+    "status": "AVAILABLE"
+  }
+]
