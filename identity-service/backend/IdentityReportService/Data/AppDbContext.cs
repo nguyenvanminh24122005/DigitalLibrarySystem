@@ -20,14 +20,14 @@ public class AppDbContext : DbContext {
     b.Entity<BorrowEvent>().Property(x => x.FineAmount).HasColumnType("decimal(18,2)");
     b.Entity<ReturnEvent>().Property(x => x.FineAmount).HasColumnType("decimal(18,2)");
     b.Entity<User>().HasData(
-      new User { Id=1, FullName="Admin", Email="admin@library.local", PasswordHash=Hash("Admin@123"), Role="Admin", IsActive=true, CreatedAt=new DateTime(2026,6,1) },
-      new User { Id=2, FullName="Librarian", Email="librarian@library.local", PasswordHash=Hash("Librarian@123"), Role="Librarian", IsActive=true, CreatedAt=new DateTime(2026,6,1) },
-      new User { Id=3, FullName="Nguyen Van A", Email="reader@library.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,1) },
-      new User { Id=4, FullName="Tran Thi B", Email="reader2@library.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,2) },
-      new User { Id=5, FullName="Le Van C", Email="reader3@library.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,2) },
-      new User { Id=6, FullName="Pham Thi D", Email="reader4@library.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,3) },
-      new User { Id=7, FullName="Hoang Van E", Email="reader5@library.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,3) },
-      new User { Id=8, FullName="Do Thi F", Email="reader6@library.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,4) }
+      new User { Id=1, FullName="Admin", Email="admin@smartlib.local", PasswordHash=Hash("Admin@123"), Role="Admin", IsActive=true, CreatedAt=new DateTime(2026,6,1) },
+      new User { Id=2, FullName="Librarian", Email="librarian@smartlib.local", PasswordHash=Hash("Librarian@123"), Role="Librarian", IsActive=true, CreatedAt=new DateTime(2026,6,1) },
+      new User { Id=3, FullName="Nguyen Van A", Email="reader@smartlib.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,1), Phone="0987654321", Address="Hà Nội" },
+      new User { Id=4, FullName="Tran Thi B", Email="reader2@smartlib.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,2), Phone="0987654322", Address="Đà Nẵng" },
+      new User { Id=5, FullName="Le Van C", Email="reader3@smartlib.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,2), Phone="0987654323", Address="Hải Phòng" },
+      new User { Id=6, FullName="Pham Thi D", Email="reader4@smartlib.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,3), Phone="0987654324", Address="Cần Thơ" },
+      new User { Id=7, FullName="Hoang Van E", Email="reader5@smartlib.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,3), Phone="0987654325", Address="Nha Trang" },
+      new User { Id=8, FullName="Do Thi F", Email="reader6@smartlib.local", PasswordHash=Hash("Reader@123"), Role="Reader", IsActive=true, CreatedAt=new DateTime(2026,6,4), Phone="0987654326", Address="TP HCM" }
     );
     b.Entity<LibraryCard>().HasData(
       new LibraryCard { Id=1, UserId=3, CardNumber="CARD-0003", Status="Active", IssuedAt=new DateTime(2026,1,1), ExpiredAt=new DateTime(2027,1,1)},

@@ -1,4 +1,4 @@
-﻿using CatalogService.Data;
+using CatalogService.Data;
 using CatalogService.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,6 +43,7 @@ public class BookService : IBookService
         existingBook.Title = book.Title;
         existingBook.Author = book.Author;
         existingBook.Category = book.Category;
+        existingBook.CategoryId = book.CategoryId;
         existingBook.ISBN = book.ISBN;
         existingBook.Publisher = book.Publisher;
         existingBook.PublishedYear = book.PublishedYear;
@@ -207,5 +208,54 @@ public class BookService : IBookService
             "Mất" => "Mất",
             _ => "Mới"
         };
+    }
+
+    public async Task<BookCopy?> GetCopyByCodeAsync(string copyCode)
+    {
+        return await _context.BookCopies
+            .Include(c => c.Book)
+            .FirstOrDefaultAsync(c => c.CopyCode == copyCode);
+    }
+
+    public async Task<BookCopy?> BorrowCopyByCodeAsync(string copyCode)
+    {
+        var copy = await _context.BookCopies.FirstOrDefaultAsync(c => c.CopyCode == copyCode);
+        if (copy == null) return null;
+        if (copy.Status == "Borrowed") throw new InvalidOperationException("Bản sao này đang được mượn.");
+        copy.Status = "Borrowed";
+        await _context.SaveChangesAsync();
+        return copy;
+    }
+
+    public async Task<BookCopy?> ReturnCopyByCodeAsync(string copyCode)
+    {
+        var copy = await _context.BookCopies.FirstOrDefaultAsync(c => c.CopyCode == copyCode);
+        if (copy == null) return null;
+        copy.Status = "Available";
+        await _context.SaveChangesAsync();
+        return copy;
+    }
+
+    public async Task<BookCopy?> UpdateCopyDirectAsync(int copyId, BookCopy copy)
+    {
+        var existingCopy = await _context.BookCopies.FindAsync(copyId);
+        if (existingCopy == null) return null;
+
+        existingCopy.CopyCode = string.IsNullOrWhiteSpace(copy.CopyCode) ? existingCopy.CopyCode : copy.CopyCode.Trim();
+        existingCopy.Status = NormalizeStatus(copy.Status);
+        existingCopy.Condition = NormalizeCondition(copy.Condition);
+
+        await _context.SaveChangesAsync();
+        return existingCopy;
+    }
+
+    public async Task<bool> DeleteCopyDirectAsync(int copyId)
+    {
+        var copy = await _context.BookCopies.FindAsync(copyId);
+        if (copy == null) return false;
+
+        _context.BookCopies.Remove(copy);
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

@@ -5,11 +5,19 @@ export const LOCAL_API = `http://${window.location.hostname}:5002`;
 const routeFallbackListeners = new Set();
 const unauthorizedListeners = new Set();
 
-console.log("Gateway URL:", import.meta.env.VITE_API_GATEWAY_URL);
+// Auto-detect environment: localhost vs remote gateway
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const apiBaseUrl = isLocalhost 
+  ? `${LOCAL_API}/api/v1/circulation`
+  : `${gatewayUrl}/api/v1/circulation`;
+
+console.log("Environment:", isLocalhost ? "Localhost" : "Gateway");
+console.log("Gateway URL:", gatewayUrl);
 console.log("Fallback URL:", LOCAL_API);
+console.log("Using API:", apiBaseUrl);
 
 const api = axios.create({
-  baseURL: `${gatewayUrl}/api/v1/circulation`,
+  baseURL: apiBaseUrl,
   timeout: 10000,
   headers: {
     "ngrok-skip-browser-warning": "true"
@@ -64,7 +72,11 @@ api.interceptors.response.use(
 );
 
 export function login(username, password) {
-  return axios.post(`${gatewayUrl}/api/v1/identity/login`, { username, password }, {
+  const identityUrl = isLocalhost 
+    ? `http://${window.location.hostname}:5003/api/v1/identity/login`
+    : `${gatewayUrl}/api/v1/identity/login`;
+  
+  return axios.post(identityUrl, { username, password }, {
     timeout: 10000,
     headers: {
       "ngrok-skip-browser-warning": "true"
@@ -73,7 +85,11 @@ export function login(username, password) {
 }
 
 export function checkGatewayConnection() {
-  return axios.get(`${gatewayUrl}/health`, {
+  const healthUrl = isLocalhost 
+    ? `http://${window.location.hostname}:5002/health`
+    : `${gatewayUrl}/health`;
+  
+  return axios.get(healthUrl, {
     timeout: 10000,
     headers: {
       "ngrok-skip-browser-warning": "true"

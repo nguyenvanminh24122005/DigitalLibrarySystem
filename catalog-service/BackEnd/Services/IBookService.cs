@@ -1,4 +1,4 @@
-﻿using CatalogService.Models;
+using CatalogService.Models;
 
 namespace CatalogService.Services;
 
@@ -28,4 +28,9 @@ public interface IBookService
 
     Task<BookCopy?> BorrowCopyAsync(int bookId, int copyId);
     Task<BookCopy?> ReturnCopyAsync(int bookId, int copyId);
+    Task<BookCopy?> GetCopyByCodeAsync(string copyCode);
+    Task<BookCopy?> BorrowCopyByCodeAsync(string copyCode);
+    Task<BookCopy?> ReturnCopyByCodeAsync(string copyCode);
+    Task<BookCopy?> UpdateCopyDirectAsync(int copyId, BookCopy copy);
+    Task<bool> DeleteCopyDirectAsync(int copyId);
 }

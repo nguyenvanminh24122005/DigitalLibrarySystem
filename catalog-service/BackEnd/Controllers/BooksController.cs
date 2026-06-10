@@ -1,4 +1,4 @@
-﻿using CatalogService.Models;
+using CatalogService.Models;
 using CatalogService.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -117,5 +117,68 @@ public class BooksController : ControllerBase
     {
         var copy = await _bookService.ReturnCopyAsync(bookId, copyId);
         return copy == null ? NotFound("Không tìm thấy bản sao để trả sách.") : Ok(copy);
+    }
+
+    [HttpGet("copies/lookup/{copyCode}")]
+    public async Task<IActionResult> GetCopyByCode(string copyCode)
+    {
+        var copy = await _bookService.GetCopyByCodeAsync(copyCode);
+        if (copy == null) return NotFound(new { message = "Không tìm thấy bản sao sách" });
+        return Ok(new {
+            copy.Id,
+            copy.BookId,
+            copy.CopyCode,
+            copy.Status,
+            copy.Condition,
+            BookTitle = copy.Book?.Title,
+            Author = copy.Book?.Author
+        });
+    }
+
+    [HttpPut("copies/borrow-by-code/{copyCode}")]
+    public async Task<IActionResult> BorrowCopyByCode(string copyCode)
+    {
+        try
+        {
+            var copy = await _bookService.BorrowCopyByCodeAsync(copyCode);
+            if (copy == null) return NotFound(new { message = "Không tìm thấy bản sao sách" });
+            return Ok(copy);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("copies/return-by-code/{copyCode}")]
+    public async Task<IActionResult> ReturnCopyByCode(string copyCode)
+    {
+        var copy = await _bookService.ReturnCopyByCodeAsync(copyCode);
+        if (copy == null) return NotFound(new { message = "Không tìm thấy bản sao sách" });
+        return Ok(copy);
+    }
+
+    [HttpGet("{bookId}/copies")]
+    public async Task<IActionResult> GetCopies(int bookId)
+    {
+        var book = await _bookService.GetBookByIdAsync(bookId);
+        if (book == null) return NotFound(new { message = "Không tìm thấy sách" });
+        return Ok(book.Copies);
+    }
+
+    [HttpPut("/api/copies/{copyId:int}")]
+    public async Task<IActionResult> UpdateCopyDirect(int copyId, BookCopy copyDto)
+    {
+        var result = await _bookService.UpdateCopyDirectAsync(copyId, copyDto);
+        if (result == null) return NotFound(new { message = "Không tìm thấy bản sao để cập nhật" });
+        return Ok(result);
+    }
+
+    [HttpDelete("/api/copies/{copyId:int}")]
+    public async Task<IActionResult> DeleteCopyDirect(int copyId)
+    {
+        var result = await _bookService.DeleteCopyDirectAsync(copyId);
+        if (!result) return NotFound(new { message = "Không tìm thấy bản sao để xóa" });
+        return Ok(new { message = "Xóa bản sao thành công" });
     }
 }

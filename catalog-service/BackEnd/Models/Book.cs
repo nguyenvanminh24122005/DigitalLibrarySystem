@@ -1,4 +1,6 @@
-﻿namespace CatalogService.Models;
+using System.Collections.Generic;
+
+namespace CatalogService.Models;
 
 public class Book
 {
@@ -10,6 +12,7 @@ public class Book
 
     public string Author { get; set; } = string.Empty;
 
+    public int? CategoryId { get; set; }
     public string Category { get; set; } = string.Empty;
 
     public string ISBN { get; set; } = string.Empty;
