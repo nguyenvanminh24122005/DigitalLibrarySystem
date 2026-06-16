@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-db
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    networks:
+      - digital-library-network
+    restart: always
+
+  catalog-service:
+    build:
+      context: ./catalog-service/BackEnd
+      dockerfile: Dockerfile
+    container_name: catalog-service
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CatalogDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      ASPNETCORE_URLS: "http://+:5001"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    ports:
+      - "5001:5001"
+    depends_on:
+      - sqlserver
+    networks:
+      - digital-library-network
+    restart: always
+
+  circulation-service:
+    build:
+      context: ./circulation-service/backend
+      dockerfile: Dockerfile
+    container_name: circulation-service
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CirculationDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      CATALOG_SERVICE_URL: "http://catalog-service:5001"
+      IDENTITY_SERVICE_URL: "http://identity-service:5003"
+      ASPNETCORE_URLS: "http://+:5002"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    ports:
+      - "5002:5002"
+    depends_on:
+      - sqlserver
+    networks:
+      - digital-library-network
+    restart: always
+
+  identity-service:
+    build:
+      context: ./identity-service/backend/IdentityReportService
+      dockerfile: Dockerfile
+    container_name: identity-service
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=IdentityDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      ASPNETCORE_URLS: "http://+:5003"
+      ASPNETCORE_ENVIRONMENT: "Development"
+      Jwt__Key: "Nhom3_IdentityReportService_Secret_Key_2026_AtLeast32Chars"
+      Jwt__Issuer: "Nhom3.IdentityReport"
+      Jwt__Audience: "DigitalLibrary"
+    ports:
+      - "5003:5003"
+    depends_on:
+      - sqlserver
+    networks:
+      - digital-library-network
+    restart: always
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_ENVIRONMENT: "Development"
+      CATALOG_SERVICE_URL: "http://catalog-service:5001"
+      CIRCULATION_SERVICE_URL: "http://circulation-service:5002"
+      IDENTITY_SERVICE_URL: "http://identity-service:5003"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - catalog-service
+      - circulation-service
+      - identity-service
+    networks:
+      - digital-library-network
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vue-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - digital-library-network
+    restart: always
+
+networks:
+  digital-library-network:
+    driver: bridge
