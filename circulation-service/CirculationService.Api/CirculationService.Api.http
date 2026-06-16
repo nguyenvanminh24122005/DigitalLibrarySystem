@@ -1,0 +1,53 @@
+@host = http://localhost:5082
+
+GET {{host}}/api/health
+
+### Get current policy
+GET {{host}}/api/borrow-policies/current
+
+### Create policy
+POST {{host}}/api/borrow-policies
+Content-Type: application/json
+
+{
+  "name": "Policy 14 days",
+  "maxBooks": 5,
+  "maxDays": 14,
+  "finePerDay": 5000
+}
+
+### Create borrow record
+POST {{host}}/api/borrow-records
+Content-Type: application/json
+
+{
+  "readerId": 10,
+  "readerName": "Nguyễn Văn A",
+  "cardNumber": "LIB010",
+  "copyCode": "COPY-010",
+  "bookId": 1001,
+  "bookTitle": "Clean Architecture",
+  "borrowDate": "2026-06-01T08:00:00"
+}
+
+### Return borrow record
+POST {{host}}/api/borrow-records/1/return
+Content-Type: application/json
+
+{
+  "returnDate": "2026-06-20T08:00:00"
+}
+
+### Get overdue records
+GET {{host}}/api/borrow-records/overdue
+
+### Get fines
+GET {{host}}/api/fines
+
+### Pay fine
+POST {{host}}/api/fines/1/pay
+Content-Type: application/json
+
+{
+  "amount": 10000
+}
