@@ -6,6 +6,7 @@ using CirculationService.Models;
 namespace CirculationService.Controllers;
 
 [ApiController]
+[Route("api/v1/circulation/policies")]
 [Route("api/circulation/policies")]
 public class PoliciesController(CirculationDbContext db) : ControllerBase
 {

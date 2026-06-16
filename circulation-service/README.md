@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Circulation Service
 
 Vai trò:
@@ -27,3 +28,6 @@ Lưu ý:
 - Service này không có frontend riêng.
 - Frontend chính nằm ở /frontend.
 - API được gọi thông qua /api-gateway.
+=======
+Circulation Service
+>>>>>>> 008f7ce15ecc486308cb288b21edfc3df5064086

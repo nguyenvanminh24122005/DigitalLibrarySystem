@@ -2,17 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CirculationService.Data;
 using CirculationService.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace CirculationService.Controllers;
 
 [ApiController]
+[Route("api/v1/circulation/borrowings")]
 [Route("api/circulation/borrowings")]
+[Route("api/records")]
 public class BorrowingsController(
     CirculationDbContext db,
     IConfiguration config,
@@ -38,25 +36,18 @@ public class BorrowingsController(
     [HttpPost]
     public async Task<IActionResult> CreateBorrowing(BorrowRequestDto dto)
     {
-        if (dto.CopyCodes == null || dto.CopyCodes.Count == 0)
+        var copyCodes = dto.GetCopyCodes();
+        if (copyCodes.Count == 0)
         {
-            return BadRequest(new { message = "Vui lòng chọn ít nhất một bản sao sách để mượn" });
+            return BadRequest(new { message = "Vui lòng nhập copyCode" });
         }
 
-        var client = httpClientFactory.CreateClient();
-        
-        // Forward incoming Authorization header for downstream service authorization
-        var authHeader = Request.Headers["Authorization"].ToString();
-        if (!string.IsNullOrEmpty(authHeader))
-        {
-            client.DefaultRequestHeaders.Add("Authorization", authHeader);
-        }
+        var client = CreateForwardingClient();
 
-        // 1. Validate card in Identity Service
         try
         {
-            var cardValidationUrl = $"{IdentityUrl}/api/cards/validate/{dto.ReaderId}";
-            var validateResponse = await client.GetFromJsonAsync<ValidateCardResponse>(cardValidationUrl);
+            var validateResponse = await client.GetFromJsonAsync<ValidateCardResponse>(
+                BuildIdentityUrl($"cards/validate/{dto.ReaderId}"));
             if (validateResponse == null || !validateResponse.IsValid)
             {
                 return BadRequest(new { message = validateResponse?.Message ?? "Thẻ thư viện không hợp lệ hoặc không được phép mượn." });
@@ -64,61 +55,58 @@ public class BorrowingsController(
         }
         catch (Exception ex)
         {
-            // Logging or fallback if Identity service is down/unavailable
             Console.WriteLine($"Error validating card: {ex.Message}");
         }
 
-        // 2. Process each copy
         var createdRecords = new List<BorrowRecord>();
-        foreach (var copyCode in dto.CopyCodes)
+        foreach (var copyCode in copyCodes)
         {
-            // Lookup book copy in Catalog Service
-            CatalogCopyDto? copy = null;
+            CatalogCopyDto? copy;
             try
             {
-                var lookupUrl = $"{CatalogUrl}/api/books/copies/lookup/{copyCode}";
-                copy = await client.GetFromJsonAsync<CatalogCopyDto>(lookupUrl);
+                copy = await client.GetFromJsonAsync<CatalogCopyDto>(BuildCatalogUrl($"books/copies/lookup/{copyCode}"));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Không thể kết nối đến Catalog Service để kiểm tra mã {copyCode}: {ex.Message}" });
+                return StatusCode(502, new { message = $"Không thể kết nối Catalog Service để kiểm tra copyCode {copyCode}: {ex.Message}" });
             }
 
             if (copy == null)
             {
-                return NotFound(new { message = $"Không tìm thấy bản sao sách với mã {copyCode}" });
+                return NotFound(new { message = $"Không tìm thấy bản sao sách với copyCode {copyCode}" });
             }
 
-            if (copy.Status != "Available")
+            if (!string.Equals(copy.Status, "Available", StringComparison.OrdinalIgnoreCase))
             {
-                return BadRequest(new { message = $"Bản sao {copyCode} ({copy.BookTitle}) hiện đang không sẵn sàng để mượn (Trạng thái: {copy.Status})" });
+                return BadRequest(new { message = $"Bản sao {copyCode} hiện không sẵn sàng để mượn (Trạng thái: {copy.Status})" });
             }
 
-            // Mark book copy as Borrowed in Catalog Service
+            if (dto.BookId.HasValue && dto.BookId.Value != copy.BookId)
+            {
+                return BadRequest(new { message = $"copyCode {copyCode} không thuộc bookId {dto.BookId.Value}" });
+            }
+
             try
             {
-                var borrowUrl = $"{CatalogUrl}/api/books/copies/borrow-by-code/{copyCode}";
-                var response = await client.PutAsync(borrowUrl, null);
+                var response = await client.PutAsync(BuildCatalogUrl($"books/copies/borrow-by-code/{copyCode}"), null);
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorMsg = await response.Content.ReadAsStringAsync();
-                    return BadRequest(new { message = $"Lỗi khi cập nhật trạng thái bản sao {copyCode}: {errorMsg}" });
+                    return StatusCode(502, new { message = "Không thể cập nhật trạng thái sách bên Catalog" });
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                return StatusCode(500, new { message = $"Lỗi kết nối Catalog Service để mượn bản sao {copyCode}: {ex.Message}" });
+                return StatusCode(502, new { message = "Không thể cập nhật trạng thái sách bên Catalog" });
             }
 
-            // Create local BorrowRecord
             var record = new BorrowRecord
             {
                 ReaderId = dto.ReaderId,
-                ReaderName = dto.ReaderName ?? "Độc giả",
-                CardNumber = dto.CardNumber,
+                ReaderName = string.IsNullOrWhiteSpace(dto.ReaderName) ? "Độc giả" : dto.ReaderName,
+                CardNumber = dto.CardNumber ?? string.Empty,
                 CopyCode = copyCode,
                 BookId = copy.BookId,
-                BookTitle = copy.BookTitle ?? "Sách",
+                BookTitle = string.IsNullOrWhiteSpace(copy.BookTitle) ? "Sách" : copy.BookTitle,
                 BorrowDate = dto.BorrowDate ?? DateTime.UtcNow,
                 DueDate = dto.DueDate ?? DateTime.UtcNow.AddDays(14),
                 Status = "Borrowed",
@@ -128,18 +116,15 @@ public class BorrowingsController(
             db.BorrowRecords.Add(record);
             createdRecords.Add(record);
 
-            // Send event to Identity & Report Service
             try
             {
-                var eventUrl = $"{IdentityUrl}/api/events/book-borrowed";
-                var eventDto = new
+                await client.PostAsJsonAsync(BuildIdentityUrl("events/book-borrowed"), new
                 {
                     readerId = dto.ReaderId,
                     bookId = copy.BookId,
                     bookTitle = copy.BookTitle,
                     borrowedAt = record.BorrowDate
-                };
-                await client.PostAsJsonAsync(eventUrl, eventDto);
+                });
             }
             catch (Exception ex)
             {
@@ -148,10 +133,11 @@ public class BorrowingsController(
         }
 
         await db.SaveChangesAsync();
-        return Ok(createdRecords);
+        return Ok(createdRecords.Count == 1 ? createdRecords[0] : createdRecords);
     }
 
     [HttpPut("{id:int}/return")]
+    [HttpPost("{id:int}/return")]
     public async Task<IActionResult> ReturnBorrowing(int id, ReturnRequestDto? dto)
     {
         var record = await db.BorrowRecords.FindAsync(id);
@@ -159,69 +145,30 @@ public class BorrowingsController(
         if (record.Status == "Returned") return BadRequest(new { message = "Sách đã được trả trước đó" });
 
         var returnDate = dto?.ReturnDate ?? DateTime.UtcNow;
-        record.ReturnDate = returnDate;
-        record.Status = "Returned";
+        var fineAmount = CalculateFine(record.DueDate, returnDate);
 
-        // Calculate fine (5,000 VND per day overdue)
-        decimal fineAmount = 0;
-        if (returnDate > record.DueDate)
+        var client = CreateForwardingClient();
+        try
         {
-            var lateDays = (int)Math.Ceiling((returnDate - record.DueDate).TotalDays);
-            if (lateDays > 0)
+            var response = await client.PutAsync(BuildCatalogUrl($"books/copies/return-by-code/{record.CopyCode}"), null);
+            if (!response.IsSuccessStatusCode)
             {
-                fineAmount = lateDays * 5000;
-                record.Fine = fineAmount;
+                return StatusCode(502, new { message = "Không thể cập nhật trạng thái sách bên Catalog" });
             }
         }
-
-        var client = httpClientFactory.CreateClient();
-        
-        // Forward Auth Header
-        var authHeader = Request.Headers["Authorization"].ToString();
-        if (!string.IsNullOrEmpty(authHeader))
+        catch
         {
-            client.DefaultRequestHeaders.Add("Authorization", authHeader);
+            return StatusCode(502, new { message = "Không thể cập nhật trạng thái sách bên Catalog" });
         }
 
-        // 1. Update status in Catalog Service
-        try
-        {
-            var returnUrl = $"{CatalogUrl}/api/books/copies/return-by-code/{record.CopyCode}";
-            await client.PutAsync(returnUrl, null);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating catalog copy: {ex.Message}");
-        }
+        record.ReturnDate = returnDate;
+        record.Status = "Returned";
+        record.Fine = fineAmount;
 
-        // 2. Publish return event to Identity
-        try
-        {
-            var eventUrl = $"{IdentityUrl}/api/events/book-returned";
-            var eventDto = new
-            {
-                readerId = record.ReaderId,
-                bookId = record.BookId,
-                fineAmount = record.Fine,
-                returnedAt = returnDate
-            };
-            await client.PostAsJsonAsync(eventUrl, eventDto);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error publishing return event: {ex.Message}");
-        }
-
-        // 3. Process Fine record locally if there's a fine
         if (fineAmount > 0)
         {
             var fine = await db.Fines.FirstOrDefaultAsync(f => f.ReaderId == record.ReaderId && f.Status == "Unpaid");
-            if (fine != null)
-            {
-                fine.Amount += fineAmount;
-                fine.UpdatedAt = DateTime.UtcNow;
-            }
-            else
+            if (fine == null)
             {
                 db.Fines.Add(new Fine
                 {
@@ -233,52 +180,161 @@ public class BorrowingsController(
                     UpdatedAt = DateTime.UtcNow
                 });
             }
+            else
+            {
+                fine.Amount += fineAmount;
+                fine.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        try
+        {
+            await client.PostAsJsonAsync(BuildIdentityUrl("events/book-returned"), new
+            {
+                readerId = record.ReaderId,
+                bookId = record.BookId,
+                fineAmount = record.Fine,
+                returnedAt = returnDate
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error publishing return event: {ex.Message}");
         }
 
         await db.SaveChangesAsync();
         return Ok(record);
     }
 
-    [HttpGet("../overdue")] // translates to /api/circulation/overdue
+    [HttpGet("/api/v1/circulation/overdue")]
+    [HttpGet("/api/circulation/overdue")]
+    [HttpGet("/api/overdue")]
     public async Task<IActionResult> GetOverdueBorrowings()
     {
         var today = DateTime.UtcNow;
-        var overdue = await db.BorrowRecords
+        var overdueRecords = await db.BorrowRecords
             .Where(r => r.Status == "Borrowed" && r.DueDate < today)
+            .OrderBy(r => r.DueDate)
             .ToListAsync();
-        return Ok(overdue);
+
+        var client = CreateForwardingClient();
+        var rows = new List<object>();
+        foreach (var record in overdueRecords)
+        {
+            var reader = await TryGetReaderAsync(client, record.ReaderId);
+            var overdueDays = Math.Max(0, (int)Math.Ceiling((today - record.DueDate).TotalDays));
+            rows.Add(new
+            {
+                readerName = reader?.FullName ?? record.ReaderName,
+                readerEmail = reader?.Email ?? string.Empty,
+                readerPhone = reader?.Phone ?? string.Empty,
+                bookTitle = record.BookTitle,
+                copyCode = record.CopyCode,
+                dueDate = record.DueDate,
+                overdueDays,
+                estimatedFine = overdueDays * 5000
+            });
+        }
+
+        return Ok(rows);
     }
 
-    [HttpGet("../stats")] // translates to /api/circulation/stats
+    [HttpGet("/api/v1/circulation/stats")]
+    [HttpGet("/api/circulation/stats")]
+    [HttpGet("/api/stats")]
     public async Task<IActionResult> GetStats()
     {
         var today = DateTime.UtcNow;
-        var totalRecords = await db.BorrowRecords.CountAsync();
-        var borrowedBooks = await db.BorrowRecords.CountAsync(r => r.Status == "Borrowed");
-        var overdueBooks = await db.BorrowRecords.CountAsync(r => r.Status == "Borrowed" && r.DueDate < today);
-        var totalFine = await db.BorrowRecords.SumAsync(r => r.Fine);
+        var totalBorrowings = await db.BorrowRecords.CountAsync();
+        var activeBorrowings = await db.BorrowRecords.CountAsync(r => r.Status == "Borrowed");
+        var returnedBorrowings = await db.BorrowRecords.CountAsync(r => r.Status == "Returned");
+        var overdueBorrowings = await db.BorrowRecords.CountAsync(r => r.Status == "Borrowed" && r.DueDate < today);
+        var totalFines = await db.BorrowRecords.SumAsync(r => r.Fine);
         var totalDebt = await db.Fines.Where(f => f.Status == "Unpaid").SumAsync(f => f.Amount);
 
         return Ok(new
         {
-            totalRecords,
-            borrowedBooks,
-            overdueBooks,
-            totalFine,
+            totalBorrowings,
+            activeBorrowings,
+            returnedBorrowings,
+            overdueBorrowings,
+            totalFines,
             totalDebt
         });
     }
+
+    private HttpClient CreateForwardingClient()
+    {
+        var client = httpClientFactory.CreateClient();
+        var authHeader = Request.Headers["Authorization"].ToString();
+        if (!string.IsNullOrEmpty(authHeader))
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authHeader);
+        }
+        return client;
+    }
+
+    private string BuildCatalogUrl(string path) => BuildServiceUrl(CatalogUrl, "catalog", path);
+
+    private string BuildIdentityUrl(string path) => BuildServiceUrl(IdentityUrl, "identity", path);
+
+    private static string BuildServiceUrl(string baseUrl, string gatewaySegment, string path)
+    {
+        var trimmedBase = baseUrl.TrimEnd('/');
+        var trimmedPath = path.TrimStart('/');
+        var prefix = trimmedBase.EndsWith("/api/v1", StringComparison.OrdinalIgnoreCase)
+            ? $"{gatewaySegment}/"
+            : "api/";
+        return $"{trimmedBase}/{prefix}{trimmedPath}";
+    }
+
+    private static decimal CalculateFine(DateTime dueDate, DateTime returnDate)
+    {
+        if (returnDate <= dueDate) return 0;
+        var lateDays = (int)Math.Ceiling((returnDate - dueDate).TotalDays);
+        return Math.Max(0, lateDays) * 5000;
+    }
+
+    private async Task<ReaderDto?> TryGetReaderAsync(HttpClient client, int readerId)
+    {
+        try
+        {
+            return await client.GetFromJsonAsync<ReaderDto>(BuildIdentityUrl($"readers/{readerId}"));
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
 
-// DTO Classes
 public class BorrowRequestDto
 {
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
     public int ReaderId { get; set; }
-    public string ReaderName { get; set; } = string.Empty;
-    public string CardNumber { get; set; } = string.Empty;
+    public string? ReaderName { get; set; }
+    public string? CardNumber { get; set; }
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public int? BookId { get; set; }
+    public string? CopyCode { get; set; }
     public List<string> CopyCodes { get; set; } = [];
     public DateTime? BorrowDate { get; set; }
     public DateTime? DueDate { get; set; }
+
+    public List<string> GetCopyCodes()
+    {
+        var codes = CopyCodes
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Select(code => code.Trim())
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(CopyCode) && !codes.Contains(CopyCode.Trim(), StringComparer.OrdinalIgnoreCase))
+        {
+            codes.Add(CopyCode.Trim());
+        }
+
+        return codes;
+    }
 }
 
 public class ReturnRequestDto
@@ -302,4 +358,12 @@ public class CatalogCopyDto
     public string Condition { get; set; } = string.Empty;
     public string BookTitle { get; set; } = string.Empty;
     public string Author { get; set; } = string.Empty;
+}
+
+public class ReaderDto
+{
+    public int Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
 }
