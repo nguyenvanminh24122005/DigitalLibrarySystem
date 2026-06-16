@@ -1,33 +1,69 @@
 # 📚 Digital Library System
 
-Hệ thống Quản lý Thư viện Số được phát triển theo kiến trúc Microservices trong môn học **Lập trình Fullstack**.
+## Tổng quan dự án
 
-Dự án hướng đến việc xây dựng một hệ thống thư viện hiện đại, hỗ trợ quản lý sách, quản lý người dùng và quản lý hoạt động mượn trả sách.
+Digital Library System là hệ thống quản lý thư viện số được phát triển theo mô hình **Fullstack Microservices Architecture**.
+
+Dự án được xây dựng nhằm số hóa các hoạt động quản lý thư viện truyền thống, hỗ trợ quản lý tài nguyên sách, người dùng và các nghiệp vụ mượn – trả sách thông qua một hệ thống tập trung, hiện đại và dễ mở rộng.
+
+Hệ thống được chia thành nhiều dịch vụ độc lập nhằm tăng khả năng bảo trì, phát triển và tích hợp trong môi trường thực tế.
 
 ---
 
-## 🏗️ Kiến trúc hệ thống
+## 🎯 Mục tiêu dự án
 
-Hệ thống được chia thành 3 module chính:
+- Xây dựng hệ thống quản lý thư viện số hoàn chỉnh.
+- Áp dụng kiến thức Fullstack vào thực tế.
+- Thực hành thiết kế hệ thống theo kiến trúc Microservices.
+- Tăng cường kỹ năng làm việc nhóm và quản lý mã nguồn với GitHub.
+- Nâng cao khả năng phát triển ứng dụng Web doanh nghiệp.
+
+---
+
+## 🏛️ Kiến trúc hệ thống
+
+Hệ thống được tổ chức theo mô hình Microservices:
 
 ```text
-Digital Library System
-│
-├── Catalog Service
-├── Identity Service
-└── Circulation Service
+                    ┌─────────────────┐
+                    │     Vue.js      │
+                    │    Frontend     │
+                    └────────┬────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         │                   │                   │
+         ▼                   ▼                   ▼
+
+ ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+ │   Catalog    │   │   Identity   │   │ Circulation  │
+ │   Service    │   │   Service    │   │   Service    │
+ └──────────────┘   └──────────────┘   └──────────────┘
+
+         │                   │                   │
+         └───────────────────┼───────────────────┘
+                             │
+                             ▼
+
+                     SQL Server Database
 ```
+
+---
+
+## 📦 Các Module Chính
 
 ### 📚 Catalog Service
 
-Quản lý thông tin sách và bản sao sách.
+Quản lý toàn bộ thông tin sách trong thư viện.
 
 **Chức năng:**
 
-- Thêm, sửa, xóa sách
+- Quản lý đầu sách
 - Quản lý bản sao sách
-- Tìm kiếm sách
-- Quản lý trạng thái sách
+- Quản lý tác giả
+- Quản lý nhà xuất bản
+- Quản lý thể loại sách
+- Tìm kiếm và tra cứu sách
+- Theo dõi trạng thái sách
 
 ---
 
@@ -39,45 +75,54 @@ Quản lý tài khoản và xác thực người dùng.
 
 - Đăng ký tài khoản
 - Đăng nhập hệ thống
-- Phân quyền người dùng
-- Quản lý hồ sơ người dùng
+- Xác thực người dùng
+- Phân quyền truy cập
+- Quản lý thông tin cá nhân
 
 ---
 
 ### 🔄 Circulation Service
 
-Quản lý hoạt động mượn và trả sách.
+Quản lý nghiệp vụ mượn và trả sách.
 
 **Chức năng:**
 
 - Tạo phiếu mượn sách
-- Trả sách
+- Quản lý trả sách
 - Theo dõi lịch sử mượn
 - Quản lý sách quá hạn
 - Thống kê hoạt động mượn trả
 
 ---
 
-## ⚙️ Công nghệ sử dụng
+## 💻 Công nghệ sử dụng
+
+### Frontend
+
+- Vue.js 3
+- Vite
+- Axios
+- HTML5
+- CSS3
+- JavaScript ES6+
 
 ### Backend
 
 - ASP.NET Core
 - Entity Framework Core
 - RESTful API
+- Dependency Injection
+- Swagger
+
+### Database
+
 - SQL Server
-
-### Frontend
-
-- HTML
-- CSS
-- JavaScript
-- Razor View
 
 ### Công cụ hỗ trợ
 
 - Visual Studio 2022
-- GitHub
+- Visual Studio Code
+- Git & GitHub
 - Docker
 - Postman
 
@@ -88,52 +133,58 @@ Quản lý hoạt động mượn và trả sách.
 ```text
 DigitalLibrarySystem
 │
-├── catalog-service
+├── catalog-service/
 │
-├── identity-service
+├── identity-service/
 │
-├── circulation-service
+├── circulation-service/
 │
 └── README.md
 ```
 
 ---
 
-## 🔄 Luồng hoạt động
+## 🔄 Quy trình hoạt động
 
 ```text
 Người dùng
-    │
-    ▼
-Đăng nhập / Đăng ký
-    │
-    ▼
+     │
+     ▼
+Đăng ký / Đăng nhập
+     │
+     ▼
 Identity Service
-    │
-    ▼
+     │
+     ▼
+Truy cập hệ thống
+     │
+     ▼
 Tra cứu sách
-    │
-    ▼
+     │
+     ▼
 Catalog Service
-    │
-    ▼
-Mượn / Trả sách
-    │
-    ▼
+     │
+     ▼
+Mượn sách / Trả sách
+     │
+     ▼
 Circulation Service
+     │
+     ▼
+Cập nhật trạng thái sách
 ```
 
 ---
 
 ## 🚀 Hướng dẫn cài đặt
 
-### Clone repository
+### Clone dự án
 
 ```bash
 git clone https://github.com/nguyenvanminh24122005/DigitalLibrarySystem.git
 ```
 
-### Chạy từng module
+### Chạy Catalog Service
 
 ```bash
 cd catalog-service
@@ -141,11 +192,15 @@ dotnet restore
 dotnet run
 ```
 
+### Chạy Identity Service
+
 ```bash
 cd identity-service
 dotnet restore
 dotnet run
 ```
+
+### Chạy Circulation Service
 
 ```bash
 cd circulation-service
@@ -153,22 +208,32 @@ dotnet restore
 dotnet run
 ```
 
----
+### Chạy Frontend
 
-## 🎯 Mục tiêu dự án
-
-- Xây dựng hệ thống thư viện số theo kiến trúc Microservices.
-- Áp dụng kiến thức Fullstack vào thực tế.
-- Thực hành làm việc nhóm với GitHub.
-- Thực hành xây dựng và tích hợp nhiều dịch vụ trong cùng một hệ thống.
-- Nâng cao kỹ năng phát triển phần mềm doanh nghiệp.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
-## 📖 Môn học
+## 📈 Định hướng phát triển
 
-**Lập trình Fullstack**
+- Tích hợp JWT Authentication.
+- Triển khai Docker cho từng dịch vụ.
+- Xây dựng API Gateway.
+- Triển khai hệ thống trên VPS.
+- Bổ sung Dashboard thống kê.
+- Tích hợp tìm kiếm nâng cao.
+- Hoàn thiện quy trình mượn – trả sách trực tuyến.
 
-### Đề tài
+---
 
-**Hệ thống Quản lý Thư viện Số (Digital Library System)**
+## 📖 Thông tin học phần
+
+**Môn học:** Lập trình Fullstack
+
+**Đề tài:** Hệ thống Quản lý Thư viện Số (Digital Library System)
+
+**Kiến trúc:** Fullstack Microservices Architecture
