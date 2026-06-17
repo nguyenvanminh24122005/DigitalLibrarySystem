@@ -6447,7 +6447,7 @@ onMounted(() => {
 
 
 // ================= QUẢN LÝ SÁCH - CATALOG SERVICE NHÓM 1 =================
-const catalogApiBaseUrl = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:5002/api'
+const catalogApiBaseUrl = import.meta.env.VITE_CATALOG_API_URL || '/api'
 
 const catalogDemoBooks = [
   {
@@ -7121,7 +7121,7 @@ catalogLoadBooks()
 
 
 // ================= CIRCULATION SERVICE - NHÓM 2 =================
-const circulationApiBaseUrl = import.meta.env.VITE_CIRCULATION_API_URL || 'http://localhost:5082/api'
+const circulationApiBaseUrl = import.meta.env.VITE_CIRCULATION_API_URL || '/api'
 const finePerDay = computed(() => Number(JSON.parse(localStorage.getItem('library_borrow_policy') || '{}')?.finePerDay || import.meta.env.VITE_FINE_PER_DAY || 5000))
 const maxBorrowLimit = computed(() => Number(JSON.parse(localStorage.getItem('library_borrow_policy') || '{}')?.maxBooks || import.meta.env.VITE_MAX_BORROW_LIMIT || 5))
 

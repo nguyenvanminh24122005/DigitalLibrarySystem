@@ -529,8 +529,8 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const CATALOG_API_URL = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:5002/api'
-const CIRCULATION_API_URL = import.meta.env.VITE_CIRCULATION_API_URL || 'http://localhost:5082/api'
+const CATALOG_API_URL = import.meta.env.VITE_CATALOG_API_URL || '/api'
+const CIRCULATION_API_URL = import.meta.env.VITE_CIRCULATION_API_URL || '/api'
 const finePerDay = Number(JSON.parse(localStorage.getItem('library_borrow_policy') || '{}')?.finePerDay || import.meta.env.VITE_FINE_PER_DAY || 5000)
 
 const navItems = [
