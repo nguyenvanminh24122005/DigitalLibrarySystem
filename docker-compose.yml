@@ -51,7 +51,7 @@ services:
 
   identity-service:
     build:
-      context: ./identity-service/backend/IdentityReportService
+      context: ./IdentityReportService
       dockerfile: Dockerfile
     container_name: identity-service
     environment:
