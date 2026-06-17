@@ -1,66 +1,248 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
+import { createRouter, createWebHistory } from 'vue-router'
+
+import UserLayout from '../layouts/UserLayout.vue'
+import AuthLayout from '../layouts/AuthLayout.vue'
+import AdminLayout from '../layouts/AdminLayout.vue'
+
+import LandingPage from '../views/LandingPage.vue'
+import LoginView from '../views/LoginView.vue'
+import AdminDashboard from '../views/AdminDashboard.vue'
+
+const readJson = (key, fallback = null) => {
+  try {
+    const value = localStorage.getItem(key)
+    return value ? JSON.parse(value) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+const getToken = () => {
+  return (
+    localStorage.getItem('token') ||
+    localStorage.getItem('accessToken') ||
+    localStorage.getItem('library_token') ||
+    ''
+  )
+}
+
+const getCurrentUser = () => {
+  return (
+    readJson('library_current_user') ||
+    readJson('library_auth_user') ||
+    readJson('user') ||
+    null
+  )
+}
+
+const getRole = () => {
+  const user = getCurrentUser()
+
+  return String(
+    localStorage.getItem('role') ||
+      user?.role ||
+      user?.userRole ||
+      ''
+  ).toLowerCase()
+}
+
+const isLoggedIn = () => {
+  return Boolean(getToken() || getCurrentUser())
+}
+
+const isAdminUser = () => {
+  const role = getRole()
+
+  return (
+    role === 'admin' ||
+    role === 'administrator' ||
+    role === 'librarian' ||
+    role === 'thu-thu' ||
+    role === 'thủ thư' ||
+    role.includes('admin')
+  )
+}
 
 const routes = [
-  // Public pages
   {
     path: '/',
-    component: () => import('../layouts/PublicLayout.vue'),
+    component: UserLayout,
     children: [
-      { path: '', name: 'Home', component: () => import('../pages/public/Home.vue') },
-      { path: 'about', name: 'About', component: () => import('../pages/public/About.vue') },
-      { path: 'guide', name: 'Guide', component: () => import('../pages/public/Guide.vue') },
-      { path: 'contact', name: 'Contact', component: () => import('../pages/public/Contact.vue') },
-    ],
+      {
+        path: '',
+        name: 'home',
+        component: LandingPage,
+        meta: {
+          title: 'Trang chủ',
+          requiresAuth: true,
+          role: 'user'
+        }
+      },
+
+      // Không dùng trang Catalog riêng nữa.
+      // Các link cũ sẽ quay về LandingPage và cuộn tới đúng khu vực.
+      {
+        path: 'catalog',
+        name: 'catalog-redirect',
+        redirect: {
+          name: 'home',
+          hash: '#books'
+        }
+      },
+      {
+        path: 'books',
+        name: 'books-redirect',
+        redirect: {
+          name: 'home',
+          hash: '#books'
+        }
+      },
+      {
+        path: 'books/:id',
+        name: 'book-detail-redirect',
+        redirect: {
+          name: 'home',
+          hash: '#books'
+        }
+      },
+      {
+        path: 'profile',
+        name: 'profile-redirect',
+        redirect: {
+          name: 'home',
+          hash: '#card'
+        }
+      },
+      {
+        path: 'card',
+        name: 'card-redirect',
+        redirect: {
+          name: 'home',
+          hash: '#card'
+        }
+      },
+      {
+        path: 'history',
+        name: 'history-redirect',
+        redirect: {
+          name: 'home',
+          hash: '#history'
+        }
+      }
+    ]
   },
-  // Auth
-  { path: '/login', name: 'Login', component: () => import('../pages/auth/Login.vue') },
-  { path: '/register', name: 'Register', component: () => import('../pages/auth/Register.vue') },
-  // Dashboard (requires auth)
+
   {
-    path: '/dashboard',
-    component: () => import('../layouts/DashboardLayout.vue'),
-    meta: { requiresAuth: true },
+    path: '/',
+    component: AuthLayout,
     children: [
-      { path: '', name: 'Dashboard', component: () => import('../pages/dashboard/Dashboard.vue') },
-      // Catalog
-      { path: 'books', name: 'Books', component: () => import('../pages/catalog/Books.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'books/new', name: 'BookCreate', component: () => import('../pages/catalog/BookForm.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'books/:id/edit', name: 'BookEdit', component: () => import('../pages/catalog/BookForm.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'categories', name: 'Categories', component: () => import('../pages/catalog/Categories.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'copies', name: 'BookCopies', component: () => import('../pages/catalog/BookCopies.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      // Identity
-      { path: 'readers', name: 'Readers', component: () => import('../pages/identity/Readers.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'readers/new', name: 'ReaderCreate', component: () => import('../pages/identity/ReaderForm.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'readers/:id/edit', name: 'ReaderEdit', component: () => import('../pages/identity/ReaderForm.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'cards', name: 'LibraryCards', component: () => import('../pages/identity/LibraryCards.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      // Circulation
-      { path: 'borrow', name: 'Borrow', component: () => import('../pages/circulation/Borrow.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'return', name: 'Return', component: () => import('../pages/circulation/Return.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'borrow-records', name: 'BorrowRecords', component: () => import('../pages/circulation/BorrowRecords.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'overdue', name: 'Overdue', component: () => import('../pages/circulation/Overdue.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      { path: 'fines', name: 'Fines', component: () => import('../pages/circulation/Fines.vue'), meta: { roles: ['Admin', 'Librarian'] } },
-      // Reports
-      { path: 'reports', name: 'Reports', component: () => import('../pages/reports/Reports.vue'), meta: { roles: ['Admin'] } },
-    ],
+      {
+        path: 'login',
+        alias: ['/auth/login'],
+        name: 'login',
+        component: LoginView,
+        meta: {
+          title: 'Đăng nhập',
+          guestOnly: true,
+          authMode: 'login'
+        }
+      },
+      {
+        path: 'register',
+        alias: ['/auth/register'],
+        name: 'register',
+        component: LoginView,
+        meta: {
+          title: 'Đăng ký',
+          guestOnly: true,
+          authMode: 'register'
+        }
+      }
+    ]
   },
-  { path: '/:pathMatch(.*)*', redirect: '/' },
+
+  {
+    path: '/admin',
+    component: AdminLayout,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true
+    },
+    children: [
+      {
+        path: '',
+        redirect: '/admin/dashboard'
+      },
+      {
+        path: 'dashboard',
+        name: 'admin-dashboard',
+        component: AdminDashboard,
+        meta: {
+          title: 'Admin Dashboard',
+          requiresAuth: true,
+          requiresAdmin: true
+        }
+      }
+    ]
+  },
+
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
+  }
 ]
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+
+  scrollBehavior(to) {
+    if (to.hash) {
+      return {
+        el: to.hash,
+        behavior: 'smooth',
+        top: 90
+      }
+    }
+
+    return {
+      top: 0,
+      behavior: 'smooth'
+    }
+  }
 })
 
 router.beforeEach((to, from, next) => {
-  const auth = useAuthStore()
+  document.title = to.meta?.title
+    ? `${to.meta.title} | Thư viện số`
+    : 'Thư viện số'
 
-  if (to.meta.requiresAuth && !auth.isLoggedIn) {
-    return next({ name: 'Login' })
+  const loggedIn = isLoggedIn()
+  const admin = isAdminUser()
+
+  if (to.meta?.guestOnly && loggedIn) {
+    if (admin) {
+      next('/admin/dashboard')
+      return
+    }
+
+    next('/')
+    return
   }
 
-  if (to.meta.roles && !to.meta.roles.includes(auth.role)) {
-    return next({ name: 'Dashboard' })
+  if (to.meta?.requiresAuth && !loggedIn) {
+    next('/login')
+    return
+  }
+
+  if (to.meta?.requiresAdmin && !admin) {
+    next('/')
+    return
+  }
+
+  if (to.name === 'home' && loggedIn && admin) {
+    next('/admin/dashboard')
+    return
   }
 
   next()

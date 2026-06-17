@@ -1,25 +1,27 @@
 {
-  "name": "frontend",
-  "private": true,
+  "name": "library-frontend",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node node_modules/vite/dist/node/cli.js --host 0.0.0.0",
-    "build": "node node_modules/vite/dist/node/cli.js build",
-    "preview": "node node_modules/vite/dist/node/cli.js preview"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@mdi/font": "^7.4.47",
-    "axios": "^1.17.0",
-    "chart.js": "^4.5.1",
+    "axios": "^1.18.0",
     "pinia": "^3.0.4",
-    "vue": "^3.5.34",
-    "vue-chartjs": "^5.3.3",
-    "vue-router": "^5.1.0",
+    "vue": "^3.5.32",
+    "vue-router": "^4.6.4",
     "vuetify": "^4.1.1"
   },
   "devDependencies": {
+    "@mdi/font": "^7.4.47",
     "@vitejs/plugin-vue": "^6.0.6",
-    "vite": "^8.0.12"
+    "vite": "^8.0.8",
+    "vite-plugin-vue-devtools": "^8.1.1"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   }
 }
