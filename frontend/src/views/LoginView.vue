@@ -1,236 +1,130 @@
 <template>
-  <div class="login-container">
-    <div class="login-card">
-      <!-- Cột trái: Hình ảnh/Branding -->
-      <div class="login-banner d-none d-md-flex">
-        <div class="banner-overlay">
-          <div class="d-flex align-center mb-6">
-            <v-icon size="36" color="white" class="mr-2">mdi-book-open-page-variant</v-icon>
-            <h2 class="text-white font-weight-black m-0" style="font-size: 24px;">Thư viện số</h2>
-          </div>
-
-          <h1 class="text-white font-weight-black mb-4" style="font-size: 32px; line-height: 1.2;">
-            Tri thức mở ra<br />tương lai
-          </h1>
-
-          <p class="text-teal-lighten-4 text-body-2">
-            Hệ thống quản lý thư viện số toàn diện, hỗ trợ định danh,
-            phân quyền và tra cứu tài liệu thông minh.
-          </p>
+  <div class="auth-page">
+    <section class="auth-card">
+      <div class="visual">
+        <div class="brand">
+          <v-icon size="34">mdi-library</v-icon>
+          <strong>Thư viện số</strong>
+        </div>
+        <h1>Quản lý tri thức rõ ràng, hiện đại và dễ dùng.</h1>
+        <p>
+          Một tài khoản cho độc giả tra cứu, đặt mượn sách; một không gian riêng cho quản trị
+          vận hành kho sách, thẻ thư viện và mượn trả.
+        </p>
+        <div class="demo-box">
+          <span>Demo nhanh</span>
+          <b>Admin:</b> admin@thuvien.com / 123456
+          <b>User:</b> user@thuvien.com / 123456
         </div>
       </div>
 
-      <!-- Cột phải: Form Đăng nhập / Đăng ký -->
-      <div class="login-form-wrapper">
-        <div class="form-content">
-          <h2 class="text-h4 font-weight-black text-grey-darken-4 mb-2">
-            {{ isRegisterMode ? 'Đăng ký' : 'Đăng nhập' }}
-          </h2>
-
-          <p class="text-body-2 text-grey-darken-1 mb-8">
-            {{
-              isRegisterMode
-                ? 'Tạo tài khoản độc giả và thẻ thư viện mới.'
-                : 'Vui lòng nhập thông tin tài khoản của bạn.'
-            }}
-          </p>
-
-          <!-- Báo lỗi nếu có -->
-          <div v-if="errorMsg" class="error-alert mb-4">
-            <v-icon size="20" color="#dc2626" class="mr-2">mdi-alert-circle</v-icon>
-            <span>{{ errorMsg }}</span>
-          </div>
-
-          <!-- Báo thành công nếu có -->
-          <div v-if="successMsg" class="success-alert mb-4">
-            <v-icon size="20" color="#0d9488" class="mr-2">mdi-check-circle</v-icon>
-            <span>{{ successMsg }}</span>
-          </div>
-
-          <!-- FORM ĐĂNG NHẬP -->
-          <form v-if="!isRegisterMode" @submit.prevent="handleLogin">
-            <!-- Email -->
-            <div class="input-group mb-5">
-              <label>Email đăng nhập</label>
-              <div class="input-wrapper">
-                <v-icon size="20" color="#94a3b8" class="input-icon">mdi-email-outline</v-icon>
-                <input
-                  type="email"
-                  v-model="email"
-                  placeholder="admin@thuvien.com hoặc email độc giả"
-                  required
-                />
-              </div>
-            </div>
-
-            <!-- Mật khẩu -->
-            <div class="input-group mb-6">
-              <div class="d-flex justify-space-between w-100">
-                <label>Mật khẩu</label>
-                <a href="#" class="text-teal text-caption font-weight-bold text-decoration-none">
-                  Quên mật khẩu?
-                </a>
-              </div>
-
-              <div class="input-wrapper">
-                <v-icon size="20" color="#94a3b8" class="input-icon">mdi-lock-outline</v-icon>
-
-                <input
-                  :type="showPassword ? 'text' : 'password'"
-                  v-model="password"
-                  placeholder="••••••••"
-                  required
-                />
-
-                <v-icon
-                  size="20"
-                  color="#94a3b8"
-                  class="input-icon-right cursor-pointer"
-                  @click="showPassword = !showPassword"
-                >
-                  {{ showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}
-                </v-icon>
-              </div>
-            </div>
-
-            <!-- Nút submit -->
-            <button type="submit" class="btn-submit" :disabled="isLoading">
-              <v-progress-circular
-                v-if="isLoading"
-                indeterminate
-                size="20"
-                width="3"
-                color="white"
-                class="mr-2"
-              />
-
-              <span>{{ isLoading ? 'Đang xử lý...' : 'Đăng nhập vào hệ thống' }}</span>
-            </button>
-
-            <p class="text-center text-caption text-grey-darken-1 mt-6">
-              Chưa có tài khoản?
-              <a href="#" class="text-teal font-weight-bold text-decoration-none" @click.prevent="goRegister">
-                Đăng ký ngay
-              </a>
-            </p>
-
-            <div class="demo-note mt-5">
-              <b>Tài khoản demo:</b><br />
-              Admin: admin@thuvien.com / 123456<br />
-              User mẫu: user@thuvien.com / 123456
-            </div>
-          </form>
-
-          <!-- FORM ĐĂNG KÝ -->
-          <form v-else @submit.prevent="handleRegister">
-            <div class="input-group mb-4">
-              <label>Họ và tên</label>
-              <div class="input-wrapper">
-                <v-icon size="20" color="#94a3b8" class="input-icon">mdi-account-outline</v-icon>
-                <input
-                  type="text"
-                  v-model="registerForm.fullName"
-                  placeholder="Nguyễn Văn A"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="input-group mb-4">
-              <label>Email</label>
-              <div class="input-wrapper">
-                <v-icon size="20" color="#94a3b8" class="input-icon">mdi-email-outline</v-icon>
-                <input
-                  type="email"
-                  v-model="registerForm.email"
-                  placeholder="example@email.com"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="input-group mb-4">
-              <label>Số điện thoại</label>
-              <div class="input-wrapper">
-                <v-icon size="20" color="#94a3b8" class="input-icon">mdi-phone-outline</v-icon>
-                <input
-                  type="tel"
-                  v-model="registerForm.phone"
-                  placeholder="0123 456 789"
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="input-group mb-4">
-              <label>Mật khẩu</label>
-              <div class="input-wrapper">
-                <v-icon size="20" color="#94a3b8" class="input-icon">mdi-lock-outline</v-icon>
-
-                <input
-                  :type="showRegisterPassword ? 'text' : 'password'"
-                  v-model="registerForm.password"
-                  placeholder="••••••••"
-                  required
-                />
-
-                <v-icon
-                  size="20"
-                  color="#94a3b8"
-                  class="input-icon-right cursor-pointer"
-                  @click="showRegisterPassword = !showRegisterPassword"
-                >
-                  {{ showRegisterPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}
-                </v-icon>
-              </div>
-            </div>
-
-            <div class="input-group mb-6">
-              <label>Xác nhận mật khẩu</label>
-              <div class="input-wrapper">
-                <v-icon size="20" color="#94a3b8" class="input-icon">mdi-lock-check-outline</v-icon>
-
-                <input
-                  :type="showConfirmPassword ? 'text' : 'password'"
-                  v-model="registerForm.confirmPassword"
-                  placeholder="••••••••"
-                  required
-                />
-
-                <v-icon
-                  size="20"
-                  color="#94a3b8"
-                  class="input-icon-right cursor-pointer"
-                  @click="showConfirmPassword = !showConfirmPassword"
-                >
-                  {{ showConfirmPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}
-                </v-icon>
-              </div>
-            </div>
-
-            <button type="submit" class="btn-submit" :disabled="isLoading">
-              <v-progress-circular
-                v-if="isLoading"
-                indeterminate
-                size="20"
-                width="3"
-                color="white"
-                class="mr-2"
-              />
-
-              <span>{{ isLoading ? 'Đang tạo tài khoản...' : 'Đăng ký tài khoản' }}</span>
-            </button>
-
-            <p class="text-center text-caption text-grey-darken-1 mt-6">
-              Đã có tài khoản?
-              <a href="#" class="text-teal font-weight-bold text-decoration-none" @click.prevent="goLogin">
-                Đăng nhập ngay
-              </a>
-            </p>
-          </form>
+      <div class="form-side">
+        <div class="form-head">
+          <span>{{ isRegisterMode ? 'Tạo tài khoản' : 'Chào mừng trở lại' }}</span>
+          <h2>{{ isRegisterMode ? 'Đăng ký độc giả' : 'Đăng nhập' }}</h2>
+          <p>{{ isRegisterMode ? 'Tạo hồ sơ và thẻ thư viện mới.' : 'Nhập thông tin để vào hệ thống.' }}</p>
         </div>
+
+        <div v-if="errorMsg" class="alert error">
+          <v-icon size="20">mdi-alert-circle-outline</v-icon>
+          {{ errorMsg }}
+        </div>
+
+        <div v-if="successMsg" class="alert success">
+          <v-icon size="20">mdi-check-circle-outline</v-icon>
+          {{ successMsg }}
+        </div>
+
+        <form v-if="!isRegisterMode" @submit.prevent="handleLogin">
+          <label>
+            Email
+            <span>
+              <v-icon size="20">mdi-email-outline</v-icon>
+              <input v-model="email" type="email" placeholder="admin@thuvien.com" required />
+            </span>
+          </label>
+
+          <label>
+            Mật khẩu
+            <span>
+              <v-icon size="20">mdi-lock-outline</v-icon>
+              <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••" required />
+              <button type="button" @click="showPassword = !showPassword">
+                <v-icon size="20">{{ showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}</v-icon>
+              </button>
+            </span>
+          </label>
+
+          <button class="submit" type="submit" :disabled="isLoading">
+            <v-progress-circular v-if="isLoading" indeterminate size="19" width="3" color="white" />
+            {{ isLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+          </button>
+
+          <p class="switch">
+            Chưa có tài khoản?
+            <button type="button" @click="goRegister">Đăng ký ngay</button>
+          </p>
+        </form>
+
+        <form v-else @submit.prevent="handleRegister">
+          <label>
+            Họ và tên
+            <span>
+              <v-icon size="20">mdi-account-outline</v-icon>
+              <input v-model="registerForm.fullName" placeholder="Nguyễn Văn A" required />
+            </span>
+          </label>
+
+          <label>
+            Email
+            <span>
+              <v-icon size="20">mdi-email-outline</v-icon>
+              <input v-model="registerForm.email" type="email" placeholder="reader@email.com" required />
+            </span>
+          </label>
+
+          <label>
+            Số điện thoại
+            <span>
+              <v-icon size="20">mdi-phone-outline</v-icon>
+              <input v-model="registerForm.phone" placeholder="0901 234 567" required />
+            </span>
+          </label>
+
+          <label>
+            Mật khẩu
+            <span>
+              <v-icon size="20">mdi-lock-outline</v-icon>
+              <input v-model="registerForm.password" :type="showRegisterPassword ? 'text' : 'password'" placeholder="••••••••" required />
+              <button type="button" @click="showRegisterPassword = !showRegisterPassword">
+                <v-icon size="20">{{ showRegisterPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}</v-icon>
+              </button>
+            </span>
+          </label>
+
+          <label>
+            Xác nhận mật khẩu
+            <span>
+              <v-icon size="20">mdi-lock-check-outline</v-icon>
+              <input v-model="registerForm.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" placeholder="••••••••" required />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword">
+                <v-icon size="20">{{ showConfirmPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}</v-icon>
+              </button>
+            </span>
+          </label>
+
+          <button class="submit" type="submit" :disabled="isLoading">
+            <v-progress-circular v-if="isLoading" indeterminate size="19" width="3" color="white" />
+            {{ isLoading ? 'Đang tạo tài khoản...' : 'Đăng ký' }}
+          </button>
+
+          <p class="switch">
+            Đã có tài khoản?
+            <button type="button" @click="goLogin">Đăng nhập</button>
+          </p>
+        </form>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -262,99 +156,20 @@ const registerForm = reactive({
 
 const isRegisterMode = computed(() => route.path.includes('register'))
 
-const getToday = () => {
-  return new Date().toLocaleDateString('vi-VN')
-}
+const today = () => new Date().toISOString().slice(0, 10)
 
-const getExpireDate = () => {
+const expireDate = () => {
   const date = new Date()
   date.setFullYear(date.getFullYear() + 1)
-  return date.toLocaleDateString('vi-VN')
+  return date.toISOString().slice(0, 10)
 }
 
-const createLibraryCard = () => {
-  const year = new Date().getFullYear()
-  const random = String(Math.floor(Math.random() * 9000) + 1000)
-
-  return {
-    cardId: `LIB-${year}-${random}`,
-    issueDate: getToday(),
-    expireDate: getExpireDate(),
-    status: 'Đang hoạt động',
-    locked: false
-  }
-}
-
-const getRegisteredUsers = () => {
-  return JSON.parse(localStorage.getItem('library_registered_users') || '[]')
-}
-
-const saveRegisteredUsers = (users) => {
-  localStorage.setItem('library_registered_users', JSON.stringify(users))
-}
-
-const saveReaderProfileForAdmin = (user) => {
-  const profiles = JSON.parse(localStorage.getItem('library_reader_profiles') || '[]')
-  const cards = JSON.parse(localStorage.getItem('library_library_cards') || '[]')
-
-  const profile = {
-    id: user.id,
-    readerId: user.cardId,
-    name: user.name,
-    fullName: user.name,
-    email: user.email,
-    phone: user.phone,
-    role: 'Độc giả',
-    status: 'Đang hoạt động',
-    cardId: user.cardId,
-    cardStatus: user.cardStatus,
-    issueDate: user.issueDate,
-    expireDate: user.expireDate,
-    createdAt: new Date().toISOString()
-  }
-
-  const card = {
-    id: user.cardId,
-    cardId: user.cardId,
-    readerId: user.id,
-    readerName: user.name,
-    issueDate: user.issueDate,
-    expireDate: user.expireDate,
-    status: user.cardStatus,
-    locked: false
-  }
-
-  const profileIndex = profiles.findIndex(item => item.email === user.email)
-
-  if (profileIndex >= 0) {
-    profiles[profileIndex] = profile
-  } else {
-    profiles.unshift(profile)
-  }
-
-  const cardIndex = cards.findIndex(item => item.cardId === user.cardId)
-
-  if (cardIndex >= 0) {
-    cards[cardIndex] = card
-  } else {
-    cards.unshift(card)
-  }
-
-  localStorage.setItem('library_reader_profiles', JSON.stringify(profiles))
-  localStorage.setItem('library_library_cards', JSON.stringify(cards))
-}
+const readUsers = () => JSON.parse(localStorage.getItem('library_registered_users') || '[]')
+const saveUsers = (users) => localStorage.setItem('library_registered_users', JSON.stringify(users))
 
 const resetMessages = () => {
   errorMsg.value = ''
   successMsg.value = ''
-}
-
-const resetRegisterForm = () => {
-  registerForm.fullName = ''
-  registerForm.email = ''
-  registerForm.phone = ''
-  registerForm.password = ''
-  registerForm.confirmPassword = ''
 }
 
 const goRegister = () => {
@@ -370,334 +185,319 @@ const goLogin = () => {
 const handleRegister = async () => {
   resetMessages()
 
-  if (
-    !registerForm.fullName ||
-    !registerForm.email ||
-    !registerForm.phone ||
-    !registerForm.password ||
-    !registerForm.confirmPassword
-  ) {
-    errorMsg.value = 'Vui lòng nhập đầy đủ thông tin đăng ký!'
-    return
-  }
-
   if (registerForm.password !== registerForm.confirmPassword) {
-    errorMsg.value = 'Mật khẩu xác nhận không khớp!'
+    errorMsg.value = 'Mật khẩu xác nhận không khớp.'
     return
   }
 
   isLoading.value = true
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 700))
+    await new Promise((resolve) => setTimeout(resolve, 400))
 
-    const users = getRegisteredUsers()
+    const users = readUsers()
     const emailValue = registerForm.email.trim().toLowerCase()
 
-    const existed = users.some(user => user.email?.toLowerCase() === emailValue)
-
-    if (existed) {
-      throw new Error('Email này đã được đăng ký. Vui lòng đăng nhập.')
+    if (users.some((user) => user.email?.toLowerCase() === emailValue)) {
+      throw new Error('Email này đã được đăng ký.')
     }
 
-    const card = createLibraryCard()
-
-    const newUser = {
-      id: `USER-${Date.now()}`,
+    const year = new Date().getFullYear()
+    const user = {
+      id: `R${Date.now()}`,
       name: registerForm.fullName.trim(),
       fullName: registerForm.fullName.trim(),
       email: emailValue,
       phone: registerForm.phone.trim(),
       password: registerForm.password,
       role: 'user',
-      cardId: card.cardId,
-      cardStatus: card.status,
-      issueDate: card.issueDate,
-      expireDate: card.expireDate,
-      libraryCard: card
+      cardId: `LIB-${year}-${Math.floor(1000 + Math.random() * 9000)}`,
+      cardStatus: 'Hoạt động',
+      issueDate: today(),
+      expireDate: expireDate()
     }
 
-    users.unshift(newUser)
-    saveRegisteredUsers(users)
+    users.unshift(user)
+    saveUsers(users)
 
-    localStorage.setItem('library_registered_user', JSON.stringify(newUser))
-    saveReaderProfileForAdmin(newUser)
-
-    successMsg.value = `Đăng ký thành công! Hệ thống đã tạo thẻ thư viện ${newUser.cardId}. Vui lòng đăng nhập.`
-
-    email.value = newUser.email
+    successMsg.value = `Đăng ký thành công. Mã thẻ của bạn là ${user.cardId}.`
+    email.value = user.email
     password.value = ''
-    resetRegisterForm()
 
-    setTimeout(() => {
-      router.push('/login')
-    }, 900)
+    setTimeout(() => router.push('/login'), 700)
   } catch (error) {
-    errorMsg.value = error.message || 'Đăng ký thất bại!'
+    errorMsg.value = error.message || 'Đăng ký thất bại.'
   } finally {
     isLoading.value = false
   }
-}
-
-const findRegisteredUser = (emailValue, passwordValue) => {
-  const users = getRegisteredUsers()
-  const legacyUser = JSON.parse(localStorage.getItem('library_registered_user') || 'null')
-
-  let foundUser = users.find(user => {
-    return user.email?.toLowerCase() === emailValue && user.password === passwordValue
-  })
-
-  if (!foundUser && legacyUser) {
-    const matchedLegacy =
-      legacyUser.email?.toLowerCase() === emailValue &&
-      legacyUser.password === passwordValue
-
-    if (matchedLegacy) {
-      foundUser = legacyUser
-    }
-  }
-
-  return foundUser
 }
 
 const handleLogin = async () => {
-  isLoading.value = true
   resetMessages()
+  isLoading.value = true
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 700))
+    await new Promise((resolve) => setTimeout(resolve, 400))
 
     const emailValue = email.value.trim().toLowerCase()
     const passwordValue = password.value
-
-    let mockResponse = null
+    let response = null
 
     if (emailValue === 'admin@thuvien.com' && passwordValue === '123456') {
-      mockResponse = {
+      response = {
         token: 'demo-admin-token',
         role: 'admin',
-        user: {
-          name: 'Admin Thư Viện',
-          email: 'admin@thuvien.com'
-        }
+        user: { name: 'Admin Thư viện', email: 'admin@thuvien.com' }
       }
     } else if (emailValue === 'user@thuvien.com' && passwordValue === '123456') {
-      mockResponse = {
+      response = {
         token: 'demo-user-token',
         role: 'user',
         user: {
+          id: 'R001',
           name: 'Nguyễn Độc Giả',
           email: 'user@thuvien.com',
+          phone: '0901 234 567',
           cardId: 'LIB-2026-0001',
-          cardStatus: 'Đang hoạt động',
-          issueDate: getToday(),
-          expireDate: getExpireDate()
+          cardStatus: 'Hoạt động',
+          issueDate: '2026-01-08',
+          expireDate: '2027-01-08'
         }
       }
     } else {
-      const registeredUser = findRegisteredUser(emailValue, passwordValue)
-
-      if (!registeredUser) {
-        throw new Error('Email hoặc mật khẩu không chính xác!')
-      }
-
-      mockResponse = {
-        token: 'demo-reader-token',
-        role: 'user',
-        user: registeredUser
-      }
+      const user = readUsers().find((item) => item.email?.toLowerCase() === emailValue && item.password === passwordValue)
+      if (!user) throw new Error('Email hoặc mật khẩu không chính xác.')
+      response = { token: 'demo-reader-token', role: 'user', user }
     }
 
-    authStore.login(mockResponse.token, mockResponse.role, mockResponse.user)
-
-    if (mockResponse.role === 'admin' || authStore.isAdmin) {
-      router.push('/admin/dashboard')
-    } else {
-      router.push('/')
-    }
+    authStore.login(response.token, response.role, response.user)
+    router.push(response.role === 'admin' ? '/admin/dashboard' : '/')
   } catch (error) {
-    errorMsg.value = error.message || 'Lỗi kết nối đến máy chủ!'
+    errorMsg.value = error.message || 'Không thể đăng nhập.'
   } finally {
     isLoading.value = false
   }
 }
 
-watch(
-  () => route.path,
-  () => {
-    resetMessages()
-  }
-)
+watch(() => route.path, resetMessages)
 </script>
 
 <style scoped>
 * {
-  font-family: 'Inter', sans-serif;
   box-sizing: border-box;
 }
 
-.text-teal {
-  color: #0d9488 !important;
-}
-
-.login-container {
+.auth-page {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f1f5f9;
-  padding: 20px;
+  padding: 24px;
+  background: #eef4f8;
+  color: #172033;
+  display: grid;
+  place-items: center;
+  font-family: Inter, Segoe UI, sans-serif;
 }
 
-.login-card {
-  width: 100%;
-  max-width: 1000px;
-  background: white;
+.auth-card {
+  width: min(1080px, 100%);
+  min-height: 680px;
   border-radius: 24px;
-  box-shadow: 0 20px 40px -15px rgba(0,0,0,0.1);
-  display: flex;
+  background: white;
+  box-shadow: 0 24px 65px rgba(23, 32, 51, 0.14);
   overflow: hidden;
-  min-height: 600px;
+  display: grid;
+  grid-template-columns: 1fr 0.92fr;
 }
 
-/* CỘT TRÁI */
-.login-banner {
-  flex: 1;
-  background: url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=1000&auto=format&fit=crop') center/cover;
-  position: relative;
-}
-
-.banner-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(2, 44, 34, 0.9) 0%, rgba(13, 148, 136, 0.8) 100%);
-  padding: 60px 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-/* CỘT PHẢI */
-.login-form-wrapper {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
-
-.form-content {
-  width: 100%;
-  max-width: 380px;
-}
-
-.input-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: #334155;
-  margin-bottom: 6px;
-}
-
-.input-wrapper {
-  position: relative;
-  width: 100%;
-  height: 48px;
-}
-
-.input-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.input-icon-right {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.input-wrapper input {
-  width: 100%;
-  height: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 0 40px;
-  font-size: 14px;
-  color: #1e293b;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.input-wrapper input:focus {
-  border-color: #0d9488;
-  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1);
-}
-
-.btn-submit {
-  width: 100%;
-  height: 48px;
-  background: #0d9488;
+.visual {
+  padding: 48px;
   color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
+  background:
+    linear-gradient(135deg, rgba(13, 56, 51, 0.88), rgba(15, 118, 110, 0.82)),
+    url('https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1200&auto=format&fit=crop') center/cover;
+  display: grid;
+  align-content: center;
+}
+
+.brand {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease;
+  gap: 10px;
+  color: #ccfbf1;
+  font-size: 22px;
 }
 
-.btn-submit:hover:not(:disabled) {
+.visual h1 {
+  margin: 28px 0 16px;
+  font-size: 44px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.visual p {
+  max-width: 520px;
+  color: #e0fdfa;
+  line-height: 1.7;
+}
+
+.demo-box {
+  width: min(100%, 430px);
+  margin-top: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 16px;
+  display: grid;
+  gap: 5px;
+}
+
+.demo-box span {
+  color: #ccfbf1;
+  font-weight: 900;
+}
+
+.form-side {
+  padding: 44px;
+  display: grid;
+  align-content: center;
+}
+
+.form-head span {
+  color: #0f766e;
+  font-weight: 950;
+}
+
+.form-head h2 {
+  margin: 4px 0 8px;
+  font-size: 34px;
+}
+
+.form-head p {
+  margin: 0 0 24px;
+  color: #64748b;
+}
+
+form {
+  display: grid;
+  gap: 15px;
+}
+
+label {
+  color: #334155;
+  font-weight: 850;
+}
+
+label span {
+  min-height: 50px;
+  margin-top: 7px;
+  border: 1px solid #d7e0ec;
+  border-radius: 13px;
+  background: white;
+  padding: 0 13px;
+  display: grid;
+  grid-template-columns: 24px 1fr 28px;
+  align-items: center;
+  gap: 8px;
+}
+
+input {
+  width: 100%;
+  height: 46px;
+  border: 0;
+  outline: 0;
+  color: #172033;
+}
+
+label button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.submit {
+  min-height: 50px;
+  border: 0;
+  border-radius: 13px;
   background: #0f766e;
+  color: white;
+  font-weight: 950;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
 }
 
-.btn-submit:disabled {
+.submit:disabled {
   background: #94a3b8;
   cursor: not-allowed;
 }
 
-.error-alert {
+.switch {
+  margin: 4px 0 0;
+  text-align: center;
+  color: #64748b;
+}
+
+.switch button {
+  border: 0;
+  background: transparent;
+  color: #0f766e;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.alert {
+  min-height: 44px;
+  margin-bottom: 14px;
+  border-radius: 13px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 850;
+}
+
+.alert.error {
   background: #fee2e2;
-  border: 1px solid #fecaca;
   color: #dc2626;
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
 }
 
-.success-alert {
-  background: #ccfbf1;
-  border: 1px solid #99f6e4;
-  color: #0f766e;
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
+.alert.success {
+  background: #dcfce7;
+  color: #15803d;
 }
 
-.demo-note {
-  border: 1px dashed #99f6e4;
-  background: #f0fdfa;
-  color: #0f766e;
-  padding: 12px 14px;
-  border-radius: 12px;
-  font-size: 12px;
-  line-height: 1.6;
+@media (max-width: 860px) {
+  .auth-card {
+    grid-template-columns: 1fr;
+  }
+
+  .visual {
+    min-height: 360px;
+  }
 }
 
-@media (max-width: 768px) {
-  .login-card {
-    min-height: auto;
+@media (max-width: 560px) {
+  .auth-page {
+    padding: 0;
+  }
+
+  .auth-card {
+    min-height: 100vh;
+    border-radius: 0;
+  }
+
+  .visual,
+  .form-side {
+    padding: 28px;
+  }
+
+  .visual h1 {
+    font-size: 34px;
   }
 }
 </style>
