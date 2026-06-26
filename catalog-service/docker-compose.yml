@@ -1,0 +1,38 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: catalog-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Your_password123
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Your_password123 -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  catalog-service:
+    build:
+      context: ./CatalogService
+      dockerfile: Dockerfile
+    container_name: catalog-service
+    ports:
+      - "5002:5002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=CatalogServiceDb;User Id=sa;Password=Your_password123;TrustServerCertificate=True;
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+  digilib-user-frontend:
+    build:
+      context: ./digilib-user-frontend
+      dockerfile: Dockerfile
+    container_name: digilib-user-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - catalog-service
