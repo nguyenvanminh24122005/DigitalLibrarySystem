@@ -1,239 +1,58 @@
-# 📚 Digital Library System
+# Digital Library System
 
-## Tổng quan dự án
+Repo nay da duoc sap xep lai theo mot cau truc duy nhat cho he thong thu vien so.
 
-Digital Library System là hệ thống quản lý thư viện số được phát triển theo mô hình **Fullstack Microservices Architecture**.
-
-Dự án được xây dựng nhằm số hóa các hoạt động quản lý thư viện truyền thống, hỗ trợ quản lý tài nguyên sách, người dùng và các nghiệp vụ mượn – trả sách thông qua một hệ thống tập trung, hiện đại và dễ mở rộng.
-
-Hệ thống được chia thành nhiều dịch vụ độc lập nhằm tăng khả năng bảo trì, phát triển và tích hợp trong môi trường thực tế.
-
----
-
-## 🎯 Mục tiêu dự án
-
-- Xây dựng hệ thống quản lý thư viện số hoàn chỉnh.
-- Áp dụng kiến thức Fullstack vào thực tế.
-- Thực hành thiết kế hệ thống theo kiến trúc Microservices.
-- Tăng cường kỹ năng làm việc nhóm và quản lý mã nguồn với GitHub.
-- Nâng cao khả năng phát triển ứng dụng Web doanh nghiệp.
-
----
-
-## 🏛️ Kiến trúc hệ thống
-
-Hệ thống được tổ chức theo mô hình Microservices:
+## Cau truc
 
 ```text
-                    ┌─────────────────┐
-                    │     Vue.js      │
-                    │    Frontend     │
-                    └────────┬────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         │                   │                   │
-         ▼                   ▼                   ▼
-
- ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
- │   Catalog    │   │   Identity   │   │ Circulation  │
- │   Service    │   │   Service    │   │   Service    │
- └──────────────┘   └──────────────┘   └──────────────┘
-
-         │                   │                   │
-         └───────────────────┼───────────────────┘
-                             │
-                             ▼
-
-                     SQL Server Database
+DigitalLibrarySystem/
+  api-gateway/
+  catalog-service/
+    CatalogService/
+  circulation-service/
+    CirculationService.Api/
+  identity-report-service/
+  frontend/
+    digilib-admin-frontend/
+    digilib-librarian-frontend/
+    digilib-user-frontend/
+  docs/
+  docker-compose.yml
 ```
 
----
+## Backend services
 
-## 📦 Các Module Chính
+- `api-gateway`: reverse proxy cho cac API.
+- `catalog-service/CatalogService`: quan ly sach, ban sao, tai lieu so va thong tin nguoi dung lien quan den catalog.
+- `circulation-service/CirculationService.Api`: quan ly muon, tra, gia han, tien phat.
+- `identity-report-service`: dang nhap, phan quyen, nguoi dung, doc gia, bao cao va log he thong.
 
-### 📚 Catalog Service
+## Frontend apps
 
-Quản lý toàn bộ thông tin sách trong thư viện.
+- `frontend/digilib-admin-frontend`: giao dien admin.
+- `frontend/digilib-librarian-frontend`: giao dien thu thu.
+- `frontend/digilib-user-frontend`: giao dien ban doc.
 
-**Chức năng:**
+## Chay bang Docker
 
-- Quản lý đầu sách
-- Quản lý bản sao sách
-- Quản lý tác giả
-- Quản lý nhà xuất bản
-- Quản lý thể loại sách
-- Tìm kiếm và tra cứu sách
-- Theo dõi trạng thái sách
-
----
-
-### 👤 Identity Service
-
-Quản lý tài khoản và xác thực người dùng.
-
-**Chức năng:**
-
-- Đăng ký tài khoản
-- Đăng nhập hệ thống
-- Xác thực người dùng
-- Phân quyền truy cập
-- Quản lý thông tin cá nhân
-
----
-
-### 🔄 Circulation Service
-
-Quản lý nghiệp vụ mượn và trả sách.
-
-**Chức năng:**
-
-- Tạo phiếu mượn sách
-- Quản lý trả sách
-- Theo dõi lịch sử mượn
-- Quản lý sách quá hạn
-- Thống kê hoạt động mượn trả
-
----
-
-## 💻 Công nghệ sử dụng
-
-### Frontend
-
-- Vue.js 3
-- Vite
-- Axios
-- HTML5
-- CSS3
-- JavaScript ES6+
-
-### Backend
-
-- ASP.NET Core
-- Entity Framework Core
-- RESTful API
-- Dependency Injection
-- Swagger
-
-### Database
-
-- SQL Server
-
-### Công cụ hỗ trợ
-
-- Visual Studio 2022
-- Visual Studio Code
-- Git & GitHub
-- Docker
-- Postman
-
----
-
-## 📂 Cấu trúc Repository
-
-```text
-DigitalLibrarySystem
-│
-├── catalog-service/
-│
-├── identity-service/
-│
-├── circulation-service/
-│
-└── README.md
-```
-
----
-
-## 🔄 Quy trình hoạt động
-
-```text
-Người dùng
-     │
-     ▼
-Đăng ký / Đăng nhập
-     │
-     ▼
-Identity Service
-     │
-     ▼
-Truy cập hệ thống
-     │
-     ▼
-Tra cứu sách
-     │
-     ▼
-Catalog Service
-     │
-     ▼
-Mượn sách / Trả sách
-     │
-     ▼
-Circulation Service
-     │
-     ▼
-Cập nhật trạng thái sách
-```
-
----
-
-## 🚀 Hướng dẫn cài đặt
-
-### Clone dự án
+Tao file `.env` tu `.env.example`, dat `SA_PASSWORD`, sau do chay:
 
 ```bash
-git clone https://github.com/nguyenvanminh24122005/DigitalLibrarySystem.git
+docker compose up --build
 ```
 
-### Chạy Catalog Service
+Port mac dinh:
 
-```bash
-cd catalog-service
-dotnet restore
-dotnet run
-```
+- API Gateway: `http://localhost:8080`
+- Catalog Service: `http://localhost:5001`
+- Circulation Service: `http://localhost:5002`
+- Identity Report Service: `http://localhost:5003`
+- Admin Frontend: `http://localhost:5173`
+- Librarian Frontend: `http://localhost:5174`
+- User Frontend: `http://localhost:5175`
 
-### Chạy Identity Service
+## Ghi chu cau truc
 
-```bash
-cd identity-service
-dotnet restore
-dotnet run
-```
+Khong tao them backend service ben trong folder tong hop khac. Neu them frontend moi, dat trong `frontend/`. Neu them backend moi, dat ngang hang voi cac service root hien tai va cap nhat `docker-compose.yml`.
 
-### Chạy Circulation Service
-
-```bash
-cd circulation-service
-dotnet restore
-dotnet run
-```
-
-### Chạy Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
----
-
-## 📈 Định hướng phát triển
-
-- Tích hợp JWT Authentication.
-- Triển khai Docker cho từng dịch vụ.
-- Xây dựng API Gateway.
-- Triển khai hệ thống trên VPS.
-- Bổ sung Dashboard thống kê.
-- Tích hợp tìm kiếm nâng cao.
-- Hoàn thiện quy trình mượn – trả sách trực tuyến.
-
----
-
-## 📖 Thông tin học phần
-
-**Môn học:** Lập trình Fullstack
-
-**Đề tài:** Hệ thống Quản lý Thư viện Số (Digital Library System)
-
-**Kiến trúc:** Fullstack Microservices Architecture
+Xem them: `docs/repo-structure.md`.

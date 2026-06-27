@@ -60,4 +60,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Chạy bằng IP LAN
-app.Run("http://0.0.0.0:5002");
+app.Run();

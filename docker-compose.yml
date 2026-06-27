@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -15,11 +13,11 @@ services:
 
   catalog-service:
     build:
-      context: ./catalog-service/BackEnd
+      context: ./catalog-service/CatalogService
       dockerfile: Dockerfile
     container_name: catalog-service
     environment:
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CatalogDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CatalogDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
       ASPNETCORE_URLS: "http://+:5001"
       ASPNETCORE_ENVIRONMENT: "Development"
     ports:
@@ -38,7 +36,7 @@ services:
     environment:
       ConnectionStrings__CirculationDb: "Server=sqlserver,1433;Database=CirculationDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
       CATALOG_SERVICE_URL: "http://catalog-service:5001"
-      IDENTITY_SERVICE_URL: "http://identity-service:5003"
+      IDENTITY_SERVICE_URL: "http://identity-report-service:5003"
       ASPNETCORE_URLS: "http://+:5002"
       ASPNETCORE_ENVIRONMENT: "Development"
     ports:
@@ -49,18 +47,18 @@ services:
       - digital-library-network
     restart: always
 
-  identity-service:
+  identity-report-service:
     build:
-      context: ./IdentityReportService
+      context: ./identity-report-service
       dockerfile: Dockerfile
-    container_name: identity-service
+    container_name: identity-report-service
     environment:
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=IdentityDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=IdentityReportDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;Encrypt=False"
       ASPNETCORE_URLS: "http://+:5003"
-      ASPNETCORE_ENVIRONMENT: "Development"
-      Jwt__Key: "Nhom3_IdentityReportService_Secret_Key_2026_AtLeast32Chars"
-      Jwt__Issuer: "Nhom3.IdentityReport"
-      Jwt__Audience: "DigitalLibrary"
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
     ports:
       - "5003:5003"
     depends_on:
@@ -79,24 +77,56 @@ services:
       ASPNETCORE_ENVIRONMENT: "Development"
       CATALOG_SERVICE_URL: "http://catalog-service:5001"
       CIRCULATION_SERVICE_URL: "http://circulation-service:5002"
-      IDENTITY_SERVICE_URL: "http://identity-service:5003"
+      IDENTITY_SERVICE_URL: "http://identity-report-service:5003"
     ports:
       - "8080:8080"
     depends_on:
       - catalog-service
       - circulation-service
-      - identity-service
+      - identity-report-service
     networks:
       - digital-library-network
     restart: always
 
-  frontend:
+  admin-frontend:
     build:
-      context: ./frontend
+      context: ./frontend/digilib-admin-frontend
       dockerfile: Dockerfile
-    container_name: vue-frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    container_name: digilib-admin-frontend
     ports:
-      - "3000:80"
+      - "5173:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - digital-library-network
+    restart: always
+
+  librarian-frontend:
+    build:
+      context: ./frontend/digilib-librarian-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    container_name: digilib-librarian-frontend
+    ports:
+      - "5174:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - digital-library-network
+    restart: always
+
+  user-frontend:
+    build:
+      context: ./frontend/digilib-user-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    container_name: digilib-user-frontend
+    ports:
+      - "5175:80"
     depends_on:
       - api-gateway
     networks:
