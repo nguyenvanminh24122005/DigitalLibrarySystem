@@ -1,0 +1,11 @@
+@"
+.env
+.env.local
+.env.*.local
+node_modules
+dist
+bin
+obj
+.vs
+.vscode
+"@ | Out-File -Encoding utf8 .gitignore
