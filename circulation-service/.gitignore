@@ -1,0 +1,12 @@
+
+
+# Visual Studio
+# Visual Studio - ignore build output everywhere
+bin/
+obj/
+/**/bin/
+/**/obj/
+Debug/
+Release/
+*.userprefs
+

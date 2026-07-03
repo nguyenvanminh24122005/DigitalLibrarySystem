@@ -1,0 +1,53 @@
+HUONG DAN CHAY BAN DA SUA - DigitalLibrarySystem
+
+1. Giai nen folder moi nay vao D:\tailieu\FullStack\DigitalLibrarySystem_fixed
+
+2. Chay lai Docker:
+
+cd D:\tailieu\FullStack\DigitalLibrarySystem_fixed
+
+docker compose down
+
+docker compose build --no-cache catalog-service circulation-service identity-report-service api-gateway admin-frontend
+
+docker compose up -d --force-recreate catalog-service circulation-service identity-report-service api-gateway admin-frontend
+
+3. Test Gateway:
+
+Invoke-RestMethod "http://localhost:8080/health" | ConvertTo-Json -Depth 5
+
+4. Test Catalog:
+
+Invoke-RestMethod "http://localhost:8080/api/books" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://localhost:8080/api/copies" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://localhost:8080/api/categories" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://localhost:8080/api/authors" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://localhost:8080/api/publishers" | ConvertTo-Json -Depth 10
+
+5. Test Circulation:
+
+Invoke-RestMethod "http://localhost:8080/api/borrow-records" | ConvertTo-Json -Depth 10
+Invoke-RestMethod "http://localhost:8080/api/overdue" | ConvertTo-Json -Depth 10
+
+6. Test Dashboard Admin:
+
+Mo trinh duyet:
+http://localhost:5173/dashboard
+http://localhost:5173/books
+http://localhost:5173/copies
+
+7. Vi tri anh bia sach:
+frontend/digilib-admin-frontend/src/public/covers
+
+Khi nhap form them sach, o Anh bia sach nhap dang:
+/covers/co_so_du_lieu.jpg
+/covers/de_men.jpg
+
+CAC PHAN DA SUA CHINH:
+- Gateway map lai route Catalog/Circulation/Identity day du hon.
+- Catalog them API /api/copies va API borrow/return theo copyCode.
+- Catalog them Location, Note cho BookCopy va tu tao cot neu DB cu thieu.
+- Circulation khi muon/tra se goi Catalog de cap nhat trang thai ban sao.
+- Identity Report goi dung port catalog-service:5001 va circulation-service:5002.
+- Dashboard doc truc tiep Catalog + Circulation + Identity, khong con hien 0 sai.
+- Books/Copies/BookDetail map dung field backend: author, category, publisher, publishedYear, coverImage, copies.

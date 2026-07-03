@@ -1,0 +1,31 @@
+{
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/borrow-policies/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "circulation-api", "Port": 8080 }
+      ],
+      "UpstreamPathTemplate": "/gateway/circulation/borrow-policies/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/borrow-records/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "circulation-api", "Port": 8080 }
+      ],
+      "UpstreamPathTemplate": "/gateway/circulation/borrow-records/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "DELETE" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/fines/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        { "Host": "circulation-api", "Port": 8080 }
+      ],
+      "UpstreamPathTemplate": "/gateway/circulation/fines/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST" ]
+    }
+  ]
+}

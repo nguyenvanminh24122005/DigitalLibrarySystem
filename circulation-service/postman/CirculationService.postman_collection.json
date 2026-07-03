@@ -1,0 +1,75 @@
+{
+  "info": {
+    "name": "Circulation Service - ER Diagram DB",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5082" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+    },
+    {
+      "name": "Get Current Policy",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/borrow-policies/current" }
+    },
+    {
+      "name": "Create Policy",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/borrow-policies",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Policy 14 days\",\n  \"maxBooks\": 5,\n  \"maxDays\": 14,\n  \"finePerDay\": 5000\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Borrow Record",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/borrow-records",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readerId\": 10,\n  \"readerName\": \"Nguyễn Văn A\",\n  \"cardNumber\": \"LIB010\",\n  \"copyCode\": \"COPY-010\",\n  \"bookId\": 1001,\n  \"bookTitle\": \"Clean Architecture\",\n  \"borrowDate\": \"2026-06-01T08:00:00\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Return Borrow Record",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/borrow-records/1/return",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"returnDate\": \"2026-06-20T08:00:00\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Overdue Records",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/borrow-records/overdue" }
+    },
+    {
+      "name": "Get Fines",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/fines" }
+    },
+    {
+      "name": "Pay Fine",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/api/fines/1/pay",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 10000\n}"
+        }
+      }
+    }
+  ]
+}
