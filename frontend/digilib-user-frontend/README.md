@@ -1,46 +1,53 @@
-# DIGILIB User Frontend
+# DIGILIB Reader Frontend
 
-Bộ giao diện User hoàn chỉnh cho thư viện số DIGILIB, gồm dashboard, tìm kiếm sách, sách mới, sách nổi bật, thể loại, chi tiết sách, danh sách bản sao, mượn/trả sách, eBook reader, tài liệu số, thông báo, hồ sơ cá nhân, empty/error/toast states.
+Giao diện Độc giả dùng React + Vite, style đồng bộ với Admin/Librarian DIGILIB.
 
 ## Chạy local
 
 ```bash
+cd frontend/digilib-user-frontend
 npm install
 npm run dev
 ```
 
-Mặc định app gọi API Catalog tại:
+Tạo file `.env` nếu cần đổi API Gateway:
 
 ```env
-VITE_CATALOG_API=http://localhost:5002/api
+VITE_API_BASE_URL=http://localhost:8080
 ```
 
-Nếu backend của bạn chạy cổng khác, tạo file `.env`:
-
-```env
-VITE_CATALOG_API=http://localhost:5002/api
-```
-
-## Build production
+## Build
 
 ```bash
 npm run build
-npm run preview
 ```
 
-## API đã tích hợp
+## API đã kết nối qua API Gateway
 
-Frontend đã gọi các API CatalogService sau:
+- Identity & Report:
+  - `POST /api/auth/login`
+  - `POST /api/auth/register`
+  - `GET /api/auth/me`
+  - `GET /api/readers/me`
+  - `PUT /api/readers/me`
+  - `GET /api/readers/me/card`
+  - `PUT /api/profile/change-password`
+- Catalog:
+  - `GET /api/books`
+  - `GET /api/books/search`
+  - `GET /api/books/{id}`
+  - `GET /api/books/{id}/availability`
+  - `GET /api/books/{id}/copies`
+  - `GET /api/categories`
+  - `POST /api/users/{userId}/borrowings`
+  - `GET /api/users/{userId}/notifications`
+  - `PUT /api/users/{userId}/notifications/{id}/read`
+  - `PUT /api/users/{userId}/notifications/read-all`
+- Circulation:
+  - `GET /api/borrow-records`
+  - `POST /api/borrow-records`
+  - `POST /api/borrow-records/{id}/renew`
+  - `POST /api/borrow-records/{id}/return`
+  - `GET /api/fines`
 
-- `GET /api/books`
-- `GET /api/books/search`
-- `GET /api/books/{id}`
-- `GET /api/books/{id}/availability`
-- `PUT /api/books/{bookId}/copies/{copyId}/borrow`
-- `PUT /api/books/{bookId}/copies/{copyId}/return`
-
-Các phần chưa có backend như yêu thích, lịch sử mượn, tiến độ đọc, tài liệu số, thông báo được lưu tạm bằng `localStorage` hoặc dữ liệu mẫu để bạn demo giao diện không bị lỗi.
-
-## Gắn vào project hiện tại
-
-Bạn có thể copy toàn bộ thư mục `src`, `package.json`, `index.html` vào frontend Vite/React hiện tại. Nếu project đã có sẵn routing/layout thì copy từng page/component tương ứng.
+Khi độc giả bấm mượn sách, frontend gọi Catalog để tạo thông báo/yêu cầu và gọi Circulation để tạo phiếu mượn, vì vậy màn hình Thủ thư/Admin dùng Circulation API có thể thấy dữ liệu.

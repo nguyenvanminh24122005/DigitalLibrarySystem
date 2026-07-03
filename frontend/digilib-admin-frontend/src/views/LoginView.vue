@@ -4,15 +4,16 @@
       <aside class="hero-panel">
         <div class="hero-badge">
           <i class="mdi mdi-shield-account-outline"></i>
-          Quản trị hệ thống
+          Đăng nhập hệ thống
         </div>
 
         <div>
-          <h1>Quản lý thư viện số bằng dữ liệu thật</h1>
+          <h1>Thư viện số DIGILIB dùng chung một tài khoản</h1>
 
           <p>
-            Admin quản lý sách, bản sao, độc giả, thẻ thư viện, người dùng,
-            phân quyền và báo cáo. Tất cả thao tác sử dụng API và cơ sở dữ liệu thật.
+            Admin, Thủ thư và Độc giả đăng nhập tại cùng một màn hình.
+            Sau khi xác thực thành công, hệ thống tự động chuyển đến giao diện
+            phù hợp theo vai trò tài khoản.
           </p>
 
           <div class="hero-stats">
@@ -41,8 +42,8 @@
           </div>
 
           <div>
-            <h2>DIGILIB <span>ADMIN</span></h2>
-            <p>Hệ thống quản lý thư viện số</p>
+            <h2>DIGILIB <span>SYSTEM</span></h2>
+            <p>Đăng nhập chung hệ thống thư viện số</p>
           </div>
         </div>
 
@@ -65,12 +66,16 @@
         </div>
 
         <!-- LOGIN -->
-        <form v-if="mode === 'login'" class="auth-form" @submit.prevent="handleLogin">
+        <form
+          v-if="mode === 'login'"
+          class="auth-form"
+          @submit.prevent="handleLogin"
+        >
           <div class="form-title">
-            <h3>Đăng nhập Admin</h3>
+            <h3>Đăng nhập hệ thống</h3>
             <p>
-              Chỉ tài khoản Admin hoặc tài khoản được phân quyền quản trị
-              mới được vào trang này.
+              Dùng chung cho Admin, Thủ thư và Độc giả. Hệ thống sẽ tự chuyển
+              đến trang phù hợp sau khi đăng nhập.
             </p>
           </div>
 
@@ -83,7 +88,7 @@
               <input
                 v-model.trim="loginForm.email"
                 type="text"
-                placeholder="admin@digilib.edu.vn"
+                placeholder="you@digilib.edu.vn"
                 autocomplete="username"
                 required
               />
@@ -149,12 +154,16 @@
         </form>
 
         <!-- REGISTER -->
-        <form v-else class="auth-form" @submit.prevent="handleRegister">
+        <form
+          v-else
+          class="auth-form"
+          @submit.prevent="handleRegister"
+        >
           <div class="form-title">
             <h3>Đăng ký độc giả</h3>
             <p>
-              Tạo tài khoản độc giả, hồ sơ độc giả và thẻ thư viện.
-              Admin/Thủ thư không tự đăng ký tại đây.
+              Tạo tài khoản độc giả mới. Sau khi đăng ký thành công, hệ thống
+              tự tạo hồ sơ độc giả và thẻ thư viện mặc định.
             </p>
           </div>
 
@@ -317,11 +326,17 @@ const registerForm = reactive({
 })
 
 onMounted(() => {
-  const remembered = localStorage.getItem('digilib_admin_remember_email')
+  const remembered = localStorage.getItem('digilib_remember_email')
 
   if (remembered) {
     loginForm.email = remembered
     rememberMe.value = true
+  }
+
+  const redirectMode = new URLSearchParams(window.location.search).get('mode')
+
+  if (redirectMode === 'register') {
+    mode.value = 'register'
   }
 })
 
@@ -367,27 +382,55 @@ function normalizeRole(role) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/đ/g, 'd')
+    .trim()
 }
 
-function isAdminRole(role) {
-  const r = normalizeRole(role)
-
+function getRole(user) {
   return (
-    r.includes('admin') ||
-    r.includes('quan ly') ||
-    r.includes('quan tri') ||
-    r.includes('bao cao')
+    user?.role ||
+    user?.roleName ||
+    user?.userRole ||
+    user?.accountType ||
+    user?.type ||
+    ''
   )
 }
 
-function isLibrarianRole(role) {
-  const r = normalizeRole(role)
-  return r.includes('thu thu') || r.includes('librarian') || r.includes('thæ') || r.includes('thá»')
+function isAdminRole(user) {
+  const role = normalizeRole(getRole(user))
+
+  return (
+    role === 'admin' ||
+    role.includes('admin') ||
+    role.includes('quan tri') ||
+    role.includes('quan ly') ||
+    role.includes('administrator')
+  )
 }
 
-function isReaderRole(role) {
-  const r = normalizeRole(role)
-  return r.includes('doc gia') || r.includes('reader') || r.includes('sinh vien') || r.includes('ä') || r.includes('giáº')
+function isLibrarianRole(user) {
+  const role = normalizeRole(getRole(user))
+
+  return (
+    role === 'librarian' ||
+    role.includes('librarian') ||
+    role.includes('thu thu') ||
+    role.includes('staff')
+  )
+}
+
+function isReaderRole(user) {
+  const role = normalizeRole(getRole(user))
+
+  return (
+    role === 'reader' ||
+    role === 'user' ||
+    role.includes('reader') ||
+    role.includes('doc gia') ||
+    role.includes('sinh vien') ||
+    role.includes('student') ||
+    role.includes('patron')
+  )
 }
 
 function portalUrl(port, path = '/') {
@@ -396,26 +439,69 @@ function portalUrl(port, path = '/') {
   url.pathname = path
   url.search = ''
   url.hash = ''
+
   return url.toString().replace(/\/$/, '')
 }
 
-function encodeSession() {
-  const payload = {
-    token: auth.token,
-    user: auth.user
+function getRedirectUrl() {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('redirect') || params.get('returnUrl') || ''
+}
+
+function getTokenFromStorage() {
+  return (
+    auth.token ||
+    localStorage.getItem('digilib_token') ||
+    localStorage.getItem('token') ||
+    localStorage.getItem('accessToken') ||
+    ''
+  )
+}
+
+function saveSharedSession(user) {
+  const token = getTokenFromStorage()
+
+  if (token) {
+    localStorage.setItem('digilib_token', token)
   }
+
+  if (user) {
+    localStorage.setItem('digilib_user', JSON.stringify(user))
+  }
+}
+
+function encodeSession(user) {
+  const payload = {
+    token: getTokenFromStorage(),
+    user: user || auth.user || null
+  }
+
   return btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
 }
 
-function sendSessionToPortal(port, path = '/') {
-  window.location.href = `${portalUrl(port, path)}?session=${encodeURIComponent(encodeSession())}`
+function sendSessionToUrl(rawUrl, user) {
+  try {
+    const url = new URL(rawUrl)
+    url.searchParams.set('session', encodeSession(user))
+    window.location.href = url.toString()
+  } catch {
+    routeByRole(user)
+  }
+}
+
+function sendSessionToPortal(port, path, user) {
+  const target = `${portalUrl(port, path)}?session=${encodeURIComponent(
+    encodeSession(user)
+  )}`
+
+  window.location.href = target
 }
 
 function saveRemember() {
   if (rememberMe.value) {
-    localStorage.setItem('digilib_admin_remember_email', loginForm.email)
+    localStorage.setItem('digilib_remember_email', loginForm.email)
   } else {
-    localStorage.removeItem('digilib_admin_remember_email')
+    localStorage.removeItem('digilib_remember_email')
   }
 }
 
@@ -430,7 +516,7 @@ function switchMode(nextMode) {
 function forgotPassword() {
   errorMessage.value = ''
   successMessage.value =
-    'Chức năng quên mật khẩu có thể tích hợp email SMTP. Hiện hãy dùng tài khoản Admin khác để đặt lại mật khẩu trong mục Người dùng.'
+    'Chức năng quên mật khẩu có thể tích hợp email SMTP. Hiện hãy liên hệ Admin để đặt lại mật khẩu.'
 }
 
 function validateEmail(email) {
@@ -443,32 +529,71 @@ function validatePhone(phone) {
   return /^(0|\+84)[0-9]{9,10}$/.test(phone.replace(/\s/g, ''))
 }
 
-function ensureAdminAccess(user) {
-  if (isAdminRole(user?.role)) return
+function redirectMatchesRole(redirectUrl, user) {
+  if (!redirectUrl) return false
+
+  try {
+    const url = new URL(redirectUrl)
+
+    if (isAdminRole(user)) {
+      return url.port === '5173'
+    }
+
+    if (isLibrarianRole(user)) {
+      return url.port === '5174'
+    }
+
+    if (isReaderRole(user)) {
+      return url.port === '5175'
+    }
+
+    return false
+  } catch {
+    return false
+  }
+}
+
+function routeByRole(user) {
+  if (isAdminRole(user)) {
+    router.push('/dashboard')
+    return
+  }
+
+  if (isLibrarianRole(user)) {
+    sendSessionToPortal(5174, '/dashboard', user)
+    return
+  }
+
+  if (isReaderRole(user)) {
+    sendSessionToPortal(5175, '/', user)
+    return
+  }
 
   auth.logout()
+  localStorage.removeItem('digilib_token')
+  localStorage.removeItem('digilib_user')
 
   throw new Error(
-    `Tài khoản role "${user?.role || 'không xác định'}" không có quyền vào giao diện Admin.`
+    `Tài khoản role "${getRole(user) || 'không xác định'}" chưa được gán giao diện phù hợp.`
   )
 }
 
 function routeAfterLogin(user) {
-  if (isAdminRole(user?.role)) {
-    router.push('/dashboard')
-    return
-  }
-  if (isLibrarianRole(user?.role)) {
-    sendSessionToPortal(5174, '/dashboard')
-    return
-  }
-  if (isReaderRole(user?.role)) {
-    sendSessionToPortal(5175, '/')
+  saveSharedSession(user)
+
+  const redirectUrl = getRedirectUrl()
+
+  if (redirectMatchesRole(redirectUrl, user)) {
+    if (isAdminRole(user)) {
+      router.push('/dashboard')
+      return
+    }
+
+    sendSessionToUrl(redirectUrl, user)
     return
   }
 
-  auth.logout()
-  throw new Error(`Tài khoản role "${user?.role || 'không xác định'}" chưa được gán portal phù hợp.`)
+  routeByRole(user)
 }
 
 async function handleLogin() {
@@ -484,7 +609,7 @@ async function handleLogin() {
   } catch (error) {
     errorMessage.value = getErrorMessage(
       error,
-      error.message || 'Đăng nhập thất bại'
+      error?.message || 'Đăng nhập thất bại'
     )
   } finally {
     loading.value = false
@@ -533,7 +658,9 @@ async function handleRegister() {
       email: registerForm.email,
       username: registerForm.email,
       phone: registerForm.phone,
-      password: registerForm.password
+      phoneNumber: registerForm.phone,
+      password: registerForm.password,
+      role: 'Reader'
     })
 
     loginForm.email = registerForm.email
@@ -550,7 +677,7 @@ async function handleRegister() {
     agreeTerms.value = false
     mode.value = 'login'
     successMessage.value =
-      'Đăng ký độc giả thành công. Độc giả có thể đăng nhập tại trang Độc giả.'
+      'Đăng ký độc giả thành công. Bạn có thể đăng nhập bằng tài khoản vừa tạo.'
   } catch (error) {
     errorMessage.value = getErrorMessage(error, 'Đăng ký thất bại')
   } finally {

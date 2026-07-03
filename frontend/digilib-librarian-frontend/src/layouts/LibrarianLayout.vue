@@ -3,7 +3,7 @@
     <aside class="sidebar">
       <div class="brand">
         <i class="mdi mdi-book-open-page-variant-outline"></i>
-        <div>DIGILIB<br><span>THỦ THƯ</span></div>
+        <div>DIGILIB<br><span></span></div>
       </div>
 
       <div class="nav-title">Tổng quan</div>

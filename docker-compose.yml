@@ -39,6 +39,8 @@ services:
       IDENTITY_SERVICE_URL: "http://identity-report-service:5003"
       ASPNETCORE_URLS: "http://+:5002"
       ASPNETCORE_ENVIRONMENT: "Development"
+      Database__AutoCreate: "true"
+      Database__SeedSampleData: "false"
     ports:
       - "5002:5002"
     depends_on:
