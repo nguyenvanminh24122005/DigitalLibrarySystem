@@ -65,7 +65,6 @@
           </button>
         </div>
 
-        <!-- LOGIN -->
         <form
           v-if="mode === 'login'"
           class="auth-form"
@@ -153,7 +152,6 @@
           </button>
         </form>
 
-        <!-- REGISTER -->
         <form
           v-else
           class="auth-form"
@@ -295,15 +293,16 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { authApi, getErrorMessage } from '../services/api'
 
+const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-const mode = ref('login')
+const mode = ref(route.query.tab === 'register' || route.query.mode === 'register' ? 'register' : 'login')
 const showLoginPassword = ref(false)
 const showRegisterPassword = ref(false)
 const rememberMe = ref(false)
@@ -332,22 +331,29 @@ onMounted(() => {
     loginForm.email = remembered
     rememberMe.value = true
   }
-
-  const redirectMode = new URLSearchParams(window.location.search).get('mode')
-
-  if (redirectMode === 'register') {
-    mode.value = 'register'
-  }
 })
+
+watch(
+  () => route.query.tab,
+  (value) => {
+    if (value === 'register') {
+      switchMode('register', false)
+    }
+
+    if (value === 'login') {
+      switchMode('login', false)
+    }
+  }
+)
 
 const passwordStrength = computed(() => {
   const value = registerForm.password || ''
   let score = 0
 
-  if (value.length >= 6) score++
-  if (/[A-Z]/.test(value)) score++
-  if (/\d/.test(value)) score++
-  if (/[^A-Za-z0-9]/.test(value)) score++
+  if (value.length >= 6) score += 1
+  if (/[A-Z]/.test(value)) score += 1
+  if (/\d/.test(value)) score += 1
+  if (/[^A-Za-z0-9]/.test(value)) score += 1
 
   if (!value) {
     return {
@@ -389,6 +395,8 @@ function getRole(user) {
   return (
     user?.role ||
     user?.roleName ||
+    user?.Role ||
+    user?.RoleName ||
     user?.userRole ||
     user?.accountType ||
     user?.type ||
@@ -404,7 +412,8 @@ function isAdminRole(user) {
     role.includes('admin') ||
     role.includes('quan tri') ||
     role.includes('quan ly') ||
-    role.includes('administrator')
+    role.includes('administrator') ||
+    role.includes('bao cao')
   )
 }
 
@@ -445,6 +454,7 @@ function portalUrl(port, path = '/') {
 
 function getRedirectUrl() {
   const params = new URLSearchParams(window.location.search)
+
   return params.get('redirect') || params.get('returnUrl') || ''
 }
 
@@ -463,6 +473,7 @@ function saveSharedSession(user) {
 
   if (token) {
     localStorage.setItem('digilib_token', token)
+    localStorage.setItem('token', token)
   }
 
   if (user) {
@@ -505,12 +516,22 @@ function saveRemember() {
   }
 }
 
-function switchMode(nextMode) {
+function switchMode(nextMode, updateQuery = true) {
   mode.value = nextMode
   showLoginPassword.value = false
   showRegisterPassword.value = false
   errorMessage.value = ''
   successMessage.value = ''
+
+  if (!updateQuery) return
+
+  router.replace({
+    path: '/login',
+    query: {
+      ...route.query,
+      tab: nextMode === 'register' ? 'register' : undefined
+    }
+  })
 }
 
 function forgotPassword() {
@@ -536,7 +557,7 @@ function redirectMatchesRole(redirectUrl, user) {
     const url = new URL(redirectUrl)
 
     if (isAdminRole(user)) {
-      return url.port === '5173'
+      return url.port === '5173' || url.pathname.startsWith('/dashboard')
     }
 
     if (isLibrarianRole(user)) {
@@ -678,6 +699,13 @@ async function handleRegister() {
     mode.value = 'login'
     successMessage.value =
       'Đăng ký độc giả thành công. Bạn có thể đăng nhập bằng tài khoản vừa tạo.'
+
+    router.replace({
+      path: '/login',
+      query: {
+        tab: undefined
+      }
+    })
   } catch (error) {
     errorMessage.value = getErrorMessage(error, 'Đăng ký thất bại')
   } finally {

@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
+const LandingView = () => import('../views/LandingView.vue')
 const LoginView = () => import('../views/LoginView.vue')
 const AdminLayout = () => import('../layouts/AdminLayout.vue')
+
 const DashboardView = () => import('../views/DashboardView.vue')
 const BooksView = () => import('../views/BooksView.vue')
 const AddBookView = () => import('../views/AddBookView.vue')
@@ -20,53 +22,180 @@ const LogsView = () => import('../views/LogsView.vue')
 const SettingsView = () => import('../views/SettingsView.vue')
 const ProfileView = () => import('../views/ProfileView.vue')
 
+function adminPage(path, name, component) {
+  return {
+    path,
+    component: AdminLayout,
+    meta: {
+      requiresAuth: true
+    },
+    children: [
+      {
+        path: '',
+        name,
+        component
+      }
+    ]
+  }
+}
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
     {
       path: '/',
+      name: 'landing',
+      component: LandingView,
+      meta: {
+        public: true
+      }
+    },
+
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: {
+        public: true
+      }
+    },
+
+    adminPage('/dashboard', 'dashboard', DashboardView),
+    adminPage('/books', 'books', BooksView),
+    adminPage('/copies', 'copies', CopiesView),
+    adminPage('/categories', 'categories', CategoryView),
+    adminPage('/authors', 'authors', AuthorView),
+    adminPage('/publishers', 'publishers', PublisherView),
+    adminPage('/users', 'users', UsersView),
+    adminPage('/readers', 'readers', ReadersView),
+    adminPage('/roles', 'roles', RolesView),
+    adminPage('/reports', 'reports', ReportsView),
+    adminPage('/logs', 'logs', LogsView),
+    adminPage('/settings', 'settings', SettingsView),
+    adminPage('/profile', 'profile', ProfileView),
+
+    {
+      path: '/books/new',
       component: AdminLayout,
+      meta: {
+        requiresAuth: true
+      },
       children: [
-        { path: '', redirect: '/dashboard' },
-        { path: 'dashboard', name: 'dashboard', component: DashboardView },
-        { path: 'books', name: 'books', component: BooksView },
-        { path: 'books/new', name: 'books-new', component: AddBookView },
-        { path: 'books/:id', name: 'books-detail', component: BookDetailView },
-        { path: 'copies', name: 'copies', component: CopiesView },
-        { path: 'categories', name: 'categories', component: CategoryView },
-        { path: 'authors', name: 'authors', component: AuthorView },
-        { path: 'publishers', name: 'publishers', component: PublisherView },
-        { path: 'users', name: 'users', component: UsersView },
-        { path: 'users/new', name: 'users-new', component: AddUserView },
-        { path: 'readers', name: 'readers', component: ReadersView },
-        { path: 'roles', name: 'roles', component: RolesView },
-        { path: 'reports', name: 'reports', component: ReportsView },
-        { path: 'logs', name: 'logs', component: LogsView },
-        { path: 'settings', name: 'settings', component: SettingsView },
-        { path: 'profile', name: 'profile', component: ProfileView }
+        {
+          path: '',
+          name: 'books-new',
+          component: AddBookView
+        }
       ]
+    },
+
+    {
+      path: '/books/:id',
+      component: AdminLayout,
+      meta: {
+        requiresAuth: true
+      },
+      children: [
+        {
+          path: '',
+          name: 'books-detail',
+          component: BookDetailView
+        }
+      ]
+    },
+
+    {
+      path: '/users/new',
+      component: AdminLayout,
+      meta: {
+        requiresAuth: true
+      },
+      children: [
+        {
+          path: '',
+          name: 'users-new',
+          component: AddUserView
+        }
+      ]
+    },
+
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/'
     }
   ]
 })
 
+function normalizeRole(role) {
+  return String(role || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .trim()
+}
+
+function getRole(user = {}) {
+  return (
+    user.role ||
+    user.roleName ||
+    user.Role ||
+    user.RoleName ||
+    user.userRole ||
+    user.accountType ||
+    user.type ||
+    ''
+  )
+}
+
 function isAdminPortalRole(role) {
-  const value = String(role || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  return value.includes('admin') || value.includes('quan ly') || value.includes('quan tri') || value.includes('bao cao')
+  const value = normalizeRole(role)
+
+  return (
+    value.includes('admin') ||
+    value.includes('quan ly') ||
+    value.includes('quan tri') ||
+    value.includes('administrator') ||
+    value.includes('bao cao')
+  )
 }
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
-  if (to.name === 'login' && auth.isAuthenticated && auth.user && !isAdminPortalRole(auth.user.role)) {
+
+  const isPublicPage = to.matched.some((record) => record.meta.public)
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+
+  if (isPublicPage) {
+    return true
+  }
+
+  if (requiresAuth && !auth.isAuthenticated) {
+    return {
+      path: '/login',
+      query: {
+        redirect: to.fullPath
+      }
+    }
+  }
+
+  if (requiresAuth && auth.isAuthenticated && auth.user) {
+    if (!isAdminPortalRole(getRole(auth.user))) {
+      auth.logout()
+      return '/login'
+    }
+  }
+
+  if (to.name === 'login' && auth.isAuthenticated && auth.user) {
+    if (isAdminPortalRole(getRole(auth.user))) {
+      return '/dashboard'
+    }
+
     auth.logout()
     return true
   }
-  if (!to.meta.public && !auth.isAuthenticated) return '/login'
-  if (!to.meta.public && auth.isAuthenticated && auth.user && !isAdminPortalRole(auth.user.role)) {
-    auth.logout()
-    return '/login'
-  }
-  if (to.name === 'login' && auth.isAuthenticated) return '/dashboard'
+
+  return true
 })
 
 export default router
