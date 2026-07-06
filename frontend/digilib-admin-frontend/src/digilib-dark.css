@@ -1,0 +1,211 @@
+html.digilib-dark,
+body.digilib-dark {
+  background: #020617 !important;
+  color: #e5e7eb !important;
+}
+
+/* Nền tổng thể */
+body.digilib-dark #app,
+body.digilib-dark .landing-page,
+body.digilib-dark .admin-layout,
+body.digilib-dark .layout,
+body.digilib-dark .main,
+body.digilib-dark .content,
+body.digilib-dark .page,
+body.digilib-dark .page-content,
+body.digilib-dark .admin-main,
+body.digilib-dark .admin-content,
+body.digilib-dark .dashboard-page {
+  background:
+    radial-gradient(circle at 4% 30%, rgba(59, 130, 246, 0.12), transparent 24%),
+    radial-gradient(circle at 86% 8%, rgba(37, 99, 235, 0.14), transparent 28%),
+    linear-gradient(180deg, #020617 0%, #0f172a 58%, #020617 100%) !important;
+  color: #e5e7eb !important;
+}
+
+/* Header, sidebar, card */
+body.digilib-dark .top-header,
+body.digilib-dark .topbar,
+body.digilib-dark .admin-topbar,
+body.digilib-dark .sidebar,
+body.digilib-dark .admin-sidebar,
+body.digilib-dark aside,
+body.digilib-dark header,
+body.digilib-dark .card,
+body.digilib-dark .stat-card,
+body.digilib-dark .panel,
+body.digilib-dark .box,
+body.digilib-dark .table-card,
+body.digilib-dark .chart-card,
+body.digilib-dark .book-card,
+body.digilib-dark .guide-intro,
+body.digilib-dark .guide-card,
+body.digilib-dark .hero-search,
+body.digilib-dark .laptop-screen,
+body.digilib-dark .dropdown,
+body.digilib-dark .modal,
+body.digilib-dark .form-card {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34) !important;
+}
+
+/* Chữ tiêu đề */
+body.digilib-dark h1,
+body.digilib-dark h2,
+body.digilib-dark h3,
+body.digilib-dark h4,
+body.digilib-dark .title,
+body.digilib-dark .page-title,
+body.digilib-dark .section-title,
+body.digilib-dark .section-head h2,
+body.digilib-dark .admin-title,
+body.digilib-dark .book-content h3,
+body.digilib-dark .guide-intro h3,
+body.digilib-dark .guide-card h3,
+body.digilib-dark strong {
+  color: #f8fafc !important;
+}
+
+/* Chữ phụ */
+body.digilib-dark p,
+body.digilib-dark span,
+body.digilib-dark small,
+body.digilib-dark label,
+body.digilib-dark .subtitle,
+body.digilib-dark .text-muted,
+body.digilib-dark .admin-subtitle,
+body.digilib-dark .book-content p,
+body.digilib-dark .guide-intro p,
+body.digilib-dark .guide-card p,
+body.digilib-dark .guide-card span {
+  color: #cbd5e1 !important;
+}
+
+/* Link, menu */
+body.digilib-dark a,
+body.digilib-dark .brand,
+body.digilib-dark .main-nav a.active,
+body.digilib-dark .main-nav a:hover,
+body.digilib-dark .nav-link.router-link-active,
+body.digilib-dark .nav-link.router-link-exact-active,
+body.digilib-dark .sidebar-link.router-link-active,
+body.digilib-dark .sidebar-link.router-link-exact-active {
+  color: #60a5fa !important;
+}
+
+body.digilib-dark .main-nav a,
+body.digilib-dark .nav-link,
+body.digilib-dark .sidebar-link {
+  color: #cbd5e1 !important;
+}
+
+body.digilib-dark .nav-link:hover,
+body.digilib-dark .sidebar-link:hover,
+body.digilib-dark .nav-link.router-link-active,
+body.digilib-dark .nav-link.router-link-exact-active,
+body.digilib-dark .sidebar-link.router-link-active,
+body.digilib-dark .sidebar-link.router-link-exact-active {
+  background: rgba(37, 99, 235, 0.16) !important;
+}
+
+/* Input */
+body.digilib-dark input,
+body.digilib-dark select,
+body.digilib-dark textarea,
+body.digilib-dark .search,
+body.digilib-dark .search-box {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+body.digilib-dark input::placeholder,
+body.digilib-dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Table */
+body.digilib-dark table,
+body.digilib-dark thead,
+body.digilib-dark tbody,
+body.digilib-dark tr,
+body.digilib-dark td,
+body.digilib-dark th {
+  background: transparent !important;
+  color: #e5e7eb !important;
+  border-color: #334155 !important;
+}
+
+body.digilib-dark th {
+  color: #93c5fd !important;
+}
+
+/* Button thường */
+body.digilib-dark .theme-btn,
+body.digilib-dark .icon-btn,
+body.digilib-dark .menu-btn,
+body.digilib-dark .btn,
+body.digilib-dark .login-btn,
+body.digilib-dark .outline-btn,
+body.digilib-dark .book-action {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #dbeafe !important;
+}
+
+/* Button chính */
+body.digilib-dark .primary-btn,
+body.digilib-dark .register-btn,
+body.digilib-dark .book-action.primary,
+body.digilib-dark .btn-primary {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* Badge */
+body.digilib-dark .hero-badge,
+body.digilib-dark .badge,
+body.digilib-dark .status,
+body.digilib-dark .kbd {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #93c5fd !important;
+}
+
+/* Ảnh sách */
+body.digilib-dark .book-cover,
+body.digilib-dark .book-cover img,
+body.digilib-dark .screen-books img {
+  background: linear-gradient(135deg, #111827, #1e293b) !important;
+}
+
+body.digilib-dark .available {
+  background: rgba(22, 163, 74, 0.18) !important;
+  color: #86efac !important;
+}
+
+body.digilib-dark .borrow-count {
+  background: rgba(249, 115, 22, 0.16) !important;
+  color: #fdba74 !important;
+}
+
+body.digilib-dark .float-icon {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+body.digilib-dark .screen-title,
+body.digilib-dark .screen-top b,
+body.digilib-dark .screen-books b {
+  color: #f8fafc !important;
+}
+
+body.digilib-dark .screen-search,
+body.digilib-dark .screen-stats span {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}

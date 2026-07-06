@@ -1,6 +1,30 @@
 import { defineStore } from 'pinia'
 import { authApi } from '../services/api'
 
+const AUTH_STORAGE_KEYS = [
+  'digilib_token',
+  'digilib_user',
+  'digilib_admin_token',
+  'digilib_admin_user',
+  'admin_token',
+  'admin_user',
+  'librarian_token',
+  'librarian_user',
+  'reader_token',
+  'reader_user',
+  'token',
+  'user',
+  'accessToken',
+  'authToken',
+  'auth_token',
+  'user_token'
+]
+
+function clearAuthStorage() {
+  AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key))
+  sessionStorage.clear()
+}
+
 function normalizeUser(user) {
   if (!user) return null
   return {

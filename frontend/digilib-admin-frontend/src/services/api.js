@@ -1,13 +1,23 @@
 import axios from 'axios'
 
-function getPublicUrl(port) {
-  return `${window.location.protocol}//${window.location.hostname}:${port}`
-}
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || getPublicUrl(8080),
-  timeout: 20000
-})
+export const AUTH_STORAGE_KEYS = [
+  'digilib_token',
+  'digilib_user',
+  'digilib_admin_token',
+  'digilib_admin_user',
+  'admin_token',
+  'admin_user',
+  'librarian_token',
+  'librarian_user',
+  'reader_token',
+  'reader_user',
+  'token',
+  'user',
+  'accessToken',
+  'authToken',
+  'auth_token',
+  'user_token'
+]
 
 const TOKEN_KEYS = [
   'digilib_token',
@@ -15,30 +25,35 @@ const TOKEN_KEYS = [
   'digilib_admin_token',
   'librarian_token',
   'reader_token',
-  'user_token',
   'token',
+  'accessToken',
+  'authToken',
   'auth_token',
-  'accessToken'
+  'user_token'
 ]
 
-const USER_KEYS = [
-  'digilib_user',
-  'admin_user',
-  'digilib_admin_user',
-  'librarian_user',
-  'reader_user',
-  'digilib_reader_user',
-  'user',
-  'auth_user'
-]
-
-function clearAuthStorage() {
-  TOKEN_KEYS.forEach((key) => localStorage.removeItem(key))
-  USER_KEYS.forEach((key) => localStorage.removeItem(key))
+export function clearAuthStorage() {
+  AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key))
+  sessionStorage.clear()
 }
 
+function getStoredToken() {
+  for (const key of TOKEN_KEYS) {
+    const value = localStorage.getItem(key)
+
+    if (value) return value
+  }
+
+  return ''
+}
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  timeout: 20000
+})
+
 api.interceptors.request.use((config) => {
-  const token = TOKEN_KEYS.map((key) => localStorage.getItem(key)).find(Boolean)
+  const token = getStoredToken()
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`

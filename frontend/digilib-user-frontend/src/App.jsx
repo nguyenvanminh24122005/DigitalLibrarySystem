@@ -40,45 +40,14 @@ import {
   X,
 } from 'lucide-react'
 
-function getPublicUrl(port) {
-  return `${window.location.protocol}//${window.location.hostname}:${port}`
-}
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || getPublicUrl(8080)).replace(/\/$/, '')
-const ADMIN_PORTAL_URL = import.meta.env.VITE_ADMIN_PORTAL_URL || getPublicUrl(5173)
-const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || getPublicUrl(5174)
-const TOKEN_KEYS = [
-  'digilib_token',
-  'reader_token',
-  'user_token',
-  'admin_token',
-  'digilib_admin_token',
-  'librarian_token',
-  'token',
-  'auth_token',
-  'accessToken',
-]
-const USER_KEYS = [
-  'digilib_user',
-  'digilib_reader_user',
-  'reader_user',
-  'admin_user',
-  'digilib_admin_user',
-  'librarian_user',
-  'user',
-  'auth_user',
-]
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
+const ADMIN_PORTAL_URL = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5173'
+const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || 'http://localhost:5174'
+const TOKEN_KEYS = ['digilib_token', 'reader_token', 'digilib_admin_token', 'user_token', 'token', 'auth_token', 'accessToken']
+const USER_KEYS = ['digilib_user', 'digilib_reader_user', 'digilib_admin_user', 'user']
 const USER_KEY = 'digilib_user'
 const READER_USER_KEY = 'digilib_reader_user'
 const SETTINGS_KEY = 'digilib_reader_settings'
-
-function resolveMediaUrl(value) {
-  const url = cleanText(value, '')
-  if (!url) return ''
-  if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url
-  if (url.startsWith('/')) return `${API_BASE}${url}`
-  return `${API_BASE}/${url.replace(/^\/+/, '')}`
-}
 
 const PAGE = {
   HOME: 'home',
@@ -132,7 +101,6 @@ function saveToken(token) {
 
   // Giữ thêm alias để các màn hình cũ hoặc service cũ vẫn đọc được.
   localStorage.setItem('reader_token', token)
-  localStorage.setItem('user_token', token)
   localStorage.setItem('token', token)
 }
 
@@ -162,8 +130,6 @@ function saveUser(user) {
 
   // Alias riêng cho Reader để không phá các đoạn code cũ.
   localStorage.setItem(READER_USER_KEY, value)
-  localStorage.setItem('reader_user', value)
-  localStorage.setItem('user', value)
 }
 
 function getSavedSettings() {
@@ -208,6 +174,56 @@ function removeVietnamese(value = '') {
     .replace(/[\u0300-\u036f]/g, '')
 }
 
+function getCategoryName(category, fallback = 'Chưa phân loại') {
+  if (category === undefined || category === null) return fallback
+  if (typeof category === 'string' || typeof category === 'number') return cleanText(category, fallback)
+
+  return cleanText(
+    firstValue(category, ['name', 'Name', 'categoryName', 'CategoryName', 'title', 'Title'], fallback),
+    fallback,
+  )
+}
+
+function normalizeCategoryKey(value) {
+  return removeVietnamese(getCategoryName(value, ''))
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+function isSameCategory(bookCategory, selectedCategory) {
+  const bookKey = normalizeCategoryKey(bookCategory)
+  const selectedKey = normalizeCategoryKey(selectedCategory)
+  if (!bookKey || !selectedKey) return false
+  return bookKey === selectedKey || bookKey.includes(selectedKey) || selectedKey.includes(bookKey)
+}
+
+function normalizeSearchKey(value = '') {
+  return removeVietnamese(value)
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function bookMatchesKeyword(book, keyword) {
+  const q = normalizeSearchKey(keyword)
+  if (!q) return true
+
+  const categoryName = getCategoryName(book?.category, '')
+  const source = normalizeSearchKey([
+    book?.title,
+    book?.bookTitle,
+    book?.author,
+    book?.publisher,
+    book?.isbn,
+    book?.dewey,
+    categoryName,
+    book?.description,
+    book?.summary,
+  ].filter(Boolean).join(' '))
+
+  return source.includes(q)
+}
+
 function statusText(value) {
   const raw = String(value ?? '').trim()
   const lower = raw.toLowerCase()
@@ -216,8 +232,7 @@ function statusText(value) {
   if (raw === '3' || lower === 'inactive') return 'Ngưng hoạt động'
   if (lower === 'borrowed') return 'Đang mượn'
   if (lower === 'returned') return 'Đã trả'
-  if (lower === 'pending' || lower === 'pendingapproval') return 'Chờ duyệt'
-  if (lower === 'rejected') return 'Từ chối'
+  if (lower === 'pendingapproval') return 'Chờ duyệt'
   if (lower === 'overduereturned') return 'Quá hạn'
   return raw || 'Đang hoạt động'
 }
@@ -342,12 +357,15 @@ function normalizeBook(item = {}) {
     id: firstValue(item, ['id', 'Id', 'bookId', 'BookId']),
     title: cleanText(title, 'Chưa rõ tên sách'),
     author: cleanText(author, 'Chưa rõ tác giả'),
-    category: cleanText(firstValue(item, ['category', 'Category', 'categoryName', 'CategoryName'], 'Chưa phân loại'), 'Chưa phân loại'),
+    category: getCategoryName(
+      firstValue(item, ['categoryName', 'CategoryName', 'category', 'Category'], 'Chưa phân loại'),
+      'Chưa phân loại',
+    ),
     publisher: cleanText(firstValue(item, ['publisher', 'Publisher', 'publisherName', 'PublisherName'], 'Đang cập nhật'), 'Đang cập nhật'),
     isbn: cleanText(firstValue(item, ['isbn', 'ISBN', 'Isbn'], ''), ''),
     publishedYear: firstValue(item, ['publishedYear', 'PublishedYear', 'publishYear', 'year', 'Year'], ''),
     description: cleanText(firstValue(item, ['description', 'Description', 'summary', 'Summary'], ''), ''),
-    coverImage: resolveMediaUrl(firstValue(item, ['coverImage', 'CoverImage', 'coverUrl', 'CoverUrl', 'imageUrl', 'ImageUrl'], '')),
+    coverImage: cleanText(firstValue(item, ['coverImage', 'CoverImage', 'coverUrl', 'CoverUrl', 'imageUrl', 'ImageUrl'], ''), ''),
     copies,
     totalCopies: copies.length || Number(firstValue(item, ['totalCopies', 'TotalCopies'], 0)),
     availableCopies: availableCopies || Number(firstValue(item, ['availableCopies', 'AvailableCopies', 'available', 'Available'], 0)),
@@ -649,17 +667,7 @@ function redirectToSharedLogin() {
 
 function decodeSessionPayload(raw) {
   try {
-    const base64 = String(raw).replace(/-/g, '+').replace(/_/g, '/')
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
-
-    return JSON.parse(
-      decodeURIComponent(
-        atob(padded)
-          .split('')
-          .map((char) => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
-          .join(''),
-      ),
-    )
+    return JSON.parse(decodeURIComponent(escape(atob(raw))))
   } catch {
     return null
   }
@@ -703,6 +711,112 @@ function SharedLoginRedirect() {
   )
 }
 
+
+function AccountMenu({ user, reader, setPage, onLogout }) {
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  const displayName = cleanText(
+    reader?.fullName ||
+      user?.fullName ||
+      user?.FullName ||
+      user?.name ||
+      user?.Name ||
+      user?.username ||
+      user?.Username,
+    'Độc giả',
+  )
+
+  const rawRole = cleanText(user?.roleName || user?.role || user?.RoleName || user?.Role, 'Độc giả')
+  const normalizedRole = removeVietnamese(rawRole)
+  const roleName = normalizedRole.includes('reader') || normalizedRole.includes('doc gia') ? 'Độc giả' : rawRole
+
+  const avatarText =
+    displayName
+      .trim()
+      .split(/\s+/)
+      .slice(-1)[0]
+      ?.charAt(0)
+      ?.toUpperCase() || 'U'
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpen(false)
+      }
+    }
+
+    function handleEsc(event) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEsc)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [])
+
+  function goToProfile() {
+    setOpen(false)
+    setPage(PAGE.PROFILE)
+  }
+
+  function goToSettings() {
+    setOpen(false)
+    setPage(PAGE.SETTINGS)
+  }
+
+  function handleLogoutClick() {
+    setOpen(false)
+    onLogout?.()
+  }
+
+  return (
+    <div className="account-menu-wrap" ref={menuRef}>
+      <button
+        type="button"
+        className={`account-trigger ${open ? 'active' : ''}`}
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <span className="user-avatar">{avatarText}</span>
+
+        <span className="account-text">
+          <b>{displayName}</b>
+          <small>{roleName}</small>
+        </span>
+
+        <ChevronDown size={18} className="account-arrow" />
+      </button>
+
+      {open && (
+        <div className="account-dropdown" role="menu">
+          <button type="button" onClick={goToProfile} role="menuitem">
+            <UserRound size={18} />
+            <span>Hồ sơ cá nhân</span>
+          </button>
+
+          <button type="button" onClick={goToSettings} role="menuitem">
+            <Settings size={18} />
+            <span>Cài đặt</span>
+          </button>
+
+          <div className="account-dropdown-line" />
+
+          <button type="button" className="logout-item" onClick={handleLogoutClick} role="menuitem">
+            <LogOut size={18} />
+            <span>Đăng xuất</span>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AppShell({
   page,
   setPage,
@@ -717,12 +831,18 @@ function AppShell({
   onMarkAllNotifications,
   onRefresh,
   onLogout,
+  settings = {},
+  setSettings,
   children,
 }) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(settings?.sidebarCollapsed === true)
   const [openNoti, setOpenNoti] = useState(false)
   const searchRef = useRef(null)
   const unread = notifications.filter((n) => !n.isRead).length
+
+  useEffect(() => {
+    setCollapsed(settings?.sidebarCollapsed === true)
+  }, [settings?.sidebarCollapsed])
 
   useEffect(() => {
     function handler(e) {
@@ -738,6 +858,17 @@ function AppShell({
   function submitSearch(e) {
     e.preventDefault()
     onSearch(searchText)
+  }
+
+  function toggleSidebar() {
+    const nextValue = !collapsed
+    setCollapsed(nextValue)
+
+    if (setSettings) {
+      const nextSettings = { ...settings, sidebarCollapsed: nextValue }
+      setSettings(nextSettings)
+      saveSettings(nextSettings)
+    }
   }
 
   return (
@@ -763,7 +894,7 @@ function AppShell({
             </div>
           ))}
         </nav>
-        <button className="collapse-btn" onClick={() => setCollapsed((v) => !v)}>
+        <button className="collapse-btn" onClick={toggleSidebar}>
           <ChevronRight size={20} className={collapsed ? '' : 'rotated'} />
           <span>Thu gọn</span>
         </button>
@@ -771,10 +902,17 @@ function AppShell({
 
       <main className="main-area">
         <header className="topbar">
-          <button className="menu-btn" onClick={() => setCollapsed((v) => !v)}><Menu size={24} /></button>
+          <button className="menu-btn" onClick={toggleSidebar}><Menu size={24} /></button>
           <form className="top-search" onSubmit={submitSearch}>
-            <Search size={21} />
-            <input ref={searchRef} value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Tìm sách, tác giả, thể loại..." />
+            <button className="top-search-submit" type="submit" title="Tìm kiếm">
+              <Search size={21} />
+            </button>
+            <input
+              ref={searchRef}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Tìm sách, tác giả, thể loại..."
+            />
             <kbd>Ctrl + K</kbd>
           </form>
           <div className="top-actions">
@@ -800,15 +938,7 @@ function AppShell({
                 </div>
               )}
             </div>
-            <div className="user-menu" role="button" tabIndex={0} onClick={() => setPage(PAGE.PROFILE)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setPage(PAGE.PROFILE) }}>
-              <div className="user-avatar">{cleanText(reader?.fullName || user?.fullName || user?.FullName, 'N').slice(0, 1).toUpperCase()}</div>
-              <div><b>{reader?.fullName || user?.fullName || user?.FullName || 'Nguyễn Văn A'}</b><span>Độc giả</span></div>
-              <ChevronDown size={18} />
-            </div>
-            <button className="logout-btn" onClick={onLogout} title="Đăng xuất">
-              <LogOut size={19} />
-              <span>Đăng xuất</span>
-            </button>
+            <AccountMenu user={user} reader={reader} setPage={setPage} onLogout={onLogout} />
           </div>
         </header>
         {children}
@@ -906,11 +1036,11 @@ function HomePage({ reader, featuredBooks, books, currentRecords, categories, on
           <h3>Thể loại phổ biến</h3>
           <div className="category-grid">
             {(categories.length ? categories : ['Văn học', 'Kỹ năng', 'Kinh tế', 'Công nghệ', 'Tâm lý', 'Lịch sử']).slice(0, 6).map((cat) => {
-              const name = typeof cat === 'string' ? cat : cat.name || cat.categoryName || cat.Name
+              const name = getCategoryName(cat)
               return <button key={name} onClick={() => onCategory(name)}><BookOpen size={20} />{name}</button>
             })}
           </div>
-          <button className="outline-btn full" onClick={() => onPage(PAGE.SEARCH)}>Xem tất cả thể loại <ChevronRight size={18} /></button>
+          <button className="outline-btn full" onClick={() => onPage(PAGE.FEATURED)}>Xem tất cả thể loại <ChevronRight size={18} /></button>
         </aside>
       </div>
     </div>
@@ -929,9 +1059,24 @@ function PageTitle({ title, desc }) {
 function FeaturedPage({ books, onBorrow, onDetail, onCategory }) {
   const [category, setCategory] = useState('Tất cả')
   const [sort, setSort] = useState('popular')
-  const categories = useMemo(() => ['Tất cả', ...Array.from(new Set(books.map((b) => b.category).filter(Boolean))).slice(0, 6)], [books])
+  const categories = useMemo(() => {
+    const seen = new Set()
+    const result = []
+
+    books.forEach((book) => {
+      const name = getCategoryName(book.category, '')
+      const key = normalizeCategoryKey(name)
+      if (name && key && !seen.has(key)) {
+        seen.add(key)
+        result.push(name)
+      }
+    })
+
+    return ['Tất cả', ...result.slice(0, 8)]
+  }, [books])
+
   const filtered = useMemo(() => {
-    let next = category === 'Tất cả' ? [...books] : books.filter((b) => b.category === category)
+    let next = category === 'Tất cả' ? [...books] : books.filter((b) => isSameCategory(b.category, category))
     if (sort === 'available') next.sort((a, b) => b.availableCopies - a.availableCopies)
     if (sort === 'newest') next.sort((a, b) => Number(b.publishedYear || 0) - Number(a.publishedYear || 0))
     if (sort === 'popular') next.sort((a, b) => (b.borrowCount || b.availableCopies || 0) - (a.borrowCount || a.availableCopies || 0))
@@ -943,7 +1088,16 @@ function FeaturedPage({ books, onBorrow, onDetail, onCategory }) {
     <div className="page-content">
       <PageTitle title="Sách nổi bật" desc="Khám phá những đầu sách nổi bật, được yêu thích và đề xuất dành cho bạn" />
       <div className="filter-bar">
-        {categories.map((c, index) => <button className={category === c ? 'active' : ''} key={c} onClick={() => { setCategory(c); onCategory?.(c === 'Tất cả' ? '' : c) }}>{index === 0 && <Grid2X2 size={18} />}{c}</button>)}
+        {categories.map((c, index) => (
+          <button
+            className={category === c ? 'active' : ''}
+            key={c}
+            onClick={() => setCategory(c)}
+          >
+            {index === 0 && <Grid2X2 size={18} />}
+            {c}
+          </button>
+        ))}
         <select value={sort} onChange={(e) => setSort(e.target.value)}>
           <option value="popular">Phổ biến nhất</option>
           <option value="available">Còn nhiều bản</option>
@@ -980,54 +1134,311 @@ function StatStrip({ items }) {
   return <div className="stat-strip">{items.map((item) => <div className="stat-box" key={item.label}><IconBadge tone={item.tone}>{item.icon}</IconBadge><div><span>{item.label}</span><b className={`${item.tone || 'blue'}-text`}>{item.value}</b><small>{item.hint}</small></div></div>)}</div>
 }
 
-function BorrowedPage({ records, onRenew, onReturn, loadingAction }) {
-  const current = records.filter(isBorrowedRecord)
-  const dueSoon = current.filter((r) => { const d = daysBetween(r.dueDate); return d !== null && d >= 0 && d <= 3 })
-  const overdue = current.filter(isOverdueRecord)
-  const canRenew = current.filter((r) => !isOverdueRecord(r)).length
+function BorrowedPage({ records, onReturn, loadingAction }) {
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('due')
+
+  const current = useMemo(() => records.filter(isBorrowedRecord), [records])
+
+  const dueSoon = useMemo(() => {
+    return current.filter((r) => {
+      const d = daysBetween(r.dueDate)
+      return d !== null && d >= 0 && d <= 3
+    })
+  }, [current])
+
+  const overdue = useMemo(() => current.filter(isOverdueRecord), [current])
+  const onTime = useMemo(() => current.filter((r) => !isOverdueRecord(r)).length, [current])
+
   const filtered = useMemo(() => {
-    let next = current.filter((r) => {
-      if (filter === 'due') { const d = daysBetween(r.dueDate); return d !== null && d >= 0 && d <= 3 }
+    let next = [...current]
+
+    next = next.filter((r) => {
+      const d = daysBetween(r.dueDate)
+      if (filter === 'due') return d !== null && d >= 0 && d <= 3
       if (filter === 'overdue') return isOverdueRecord(r)
-      if (filter === 'renew') return !isOverdueRecord(r)
       return true
     })
+
     if (sort === 'due') next.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
     if (sort === 'newest') next.sort((a, b) => new Date(b.borrowDate) - new Date(a.borrowDate))
+
     return next
   }, [current, filter, sort])
 
+  function getBook(record) {
+    return record.book?.id
+      ? record.book
+      : {
+          title: record.bookTitle || 'Chưa rõ tên sách',
+          author: record.author || record.book?.author || '',
+          coverImage: record.coverImage || record.book?.coverImage || '',
+        }
+  }
+
+  function getStatus(record) {
+    const days = daysBetween(record.dueDate)
+
+    if (isOverdueRecord(record)) {
+      return {
+        text: 'Quá hạn',
+        tone: 'red',
+        note: days !== null ? `Quá ${Math.abs(days)} ngày` : '',
+      }
+    }
+
+    if (days !== null && days <= 3) {
+      return {
+        text: 'Sắp đến hạn',
+        tone: 'orange',
+        note: `Còn ${days} ngày`,
+      }
+    }
+
+    return {
+      text: 'Đúng hạn',
+      tone: 'green',
+      note: days !== null ? `Còn ${days} ngày` : '',
+    }
+  }
+
+  function exportBorrowedList() {
+    const header = ['Tên sách', 'Mã bản sao', 'Ngày mượn', 'Hạn trả', 'Trạng thái', 'Lượt gia hạn', 'Phí phạt']
+
+    const body = filtered.map((r) => {
+      const status = getStatus(r)
+
+      return [
+        r.bookTitle || r.book?.title || 'Sách',
+        r.copyCode || '',
+        formatDate(r.borrowDate),
+        formatDate(r.dueDate),
+        status.text,
+        `${r.renewCount || 0}/2`,
+        currency(r.estimatedFine || r.fine),
+      ]
+    })
+
+    const csv = [header, ...body]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+
+    a.href = url
+    a.download = 'sach-dang-muon.csv'
+    a.click()
+
+    URL.revokeObjectURL(url)
+  }
+
   return (
-    <div className="page-content">
-      <PageTitle title="Sách đang mượn" desc="Theo dõi danh sách sách bạn đang mượn, hạn trả và thao tác gia hạn hoặc trả sách" />
+    <div className="page-content borrowed-page-fixed">
+      <PageTitle
+        title="Sách đang mượn"
+        desc="Theo dõi danh sách sách bạn đang mượn, hạn trả và thao tác trả sách"
+      />
+
       <div className="borrowed-layout">
-        <main>
-          <StatStrip items={[
-            { label: 'Đang mượn', value: current.length, hint: 'Sách đang mượn', tone: 'blue', icon: <BookOpen size={26} /> },
-            { label: 'Sắp đến hạn', value: dueSoon.length, hint: 'Sách sắp đến hạn', tone: 'orange', icon: <Clock3 size={26} /> },
-            { label: 'Quá hạn', value: overdue.length, hint: 'Sách quá hạn', tone: 'red', icon: <AlertTriangle size={26} /> },
-            { label: 'Có thể gia hạn', value: canRenew, hint: 'Sách có thể gia hạn', tone: 'green', icon: <RotateCcw size={26} /> },
-          ]} />
-          <section className="panel table-panel">
-            <div className="table-head"><h3>Danh sách sách đang mượn</h3><div><select value={filter} onChange={(e) => setFilter(e.target.value)}><option value="all">Tất cả trạng thái</option><option value="due">Sắp đến hạn</option><option value="overdue">Quá hạn</option><option value="renew">Có thể gia hạn</option></select><select value={sort} onChange={(e) => setSort(e.target.value)}><option value="due">Sắp đến hạn</option><option value="newest">Mới mượn</option></select><button className="primary-mini"><Download size={16} /> Xuất danh sách</button></div></div>
-            {filtered.length ? <div className="table-wrap"><table><thead><tr><th>Sách</th><th>Ngày mượn</th><th>Hạn trả</th><th>Trạng thái</th><th>Gia hạn</th><th>Phí phạt</th><th>Thao tác</th></tr></thead><tbody>{filtered.map((r) => {
-              const days = daysBetween(r.dueDate)
-              const overdueRow = isOverdueRecord(r)
-              return <tr key={r.id}><td><div className="book-cell"><BookCover book={r.book?.id ? r.book : { title: r.bookTitle }} size="tiny" /><span><b>{r.bookTitle}</b><small>{r.copyCode}</small></span></div></td><td>{formatDate(r.borrowDate)}</td><td>{formatDate(r.dueDate)}<small className={overdueRow ? 'red-text block' : 'muted block'}>{days !== null ? days < 0 ? `Quá ${Math.abs(days)} ngày` : `Còn ${days} ngày` : ''}</small></td><td><Badge tone={overdueRow ? 'red' : days !== null && days <= 3 ? 'orange' : 'green'}>{overdueRow ? 'Quá hạn' : days !== null && days <= 3 ? 'Sắp đến hạn' : 'Đúng hạn'}</Badge></td><td>{r.renewCount || 0}/2</td><td className={Number(r.estimatedFine || r.fine) > 0 ? 'red-text strong' : ''}>{currency(r.estimatedFine || r.fine)}</td><td><div className="action-row"><button onClick={() => onRenew(r)} disabled={overdueRow || loadingAction === r.id}><RotateCcw size={16} />Gia hạn</button><button onClick={() => onReturn(r)} disabled={loadingAction === r.id}><WalletCards size={16} />Trả sách</button></div></td></tr>
-            })}</tbody></table></div> : <EmptyState title="Không có sách đang mượn" />}
+        <main className="borrowed-main">
+          <StatStrip
+            items={[
+              {
+                label: 'Đang mượn',
+                value: current.length,
+                hint: 'Sách đang mượn',
+                tone: 'blue',
+                icon: <BookOpen size={26} />,
+              },
+              {
+                label: 'Sắp đến hạn',
+                value: dueSoon.length,
+                hint: 'Sách sắp đến hạn',
+                tone: 'orange',
+                icon: <Clock3 size={26} />,
+              },
+              {
+                label: 'Quá hạn',
+                value: overdue.length,
+                hint: 'Sách quá hạn',
+                tone: 'red',
+                icon: <AlertTriangle size={26} />,
+              },
+              {
+                label: 'Còn trong hạn',
+                value: onTime,
+                hint: 'Sách chưa quá hạn',
+                tone: 'green',
+                icon: <CheckCircle2 size={26} />,
+              },
+            ]}
+          />
+
+          <section className="panel table-panel borrowed-table-panel">
+            <div className="table-head borrowed-table-head">
+              <h3>Danh sách sách đang mượn</h3>
+
+              <div className="borrowed-toolbar">
+                <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="due">Sắp đến hạn</option>
+                  <option value="overdue">Quá hạn</option>
+                </select>
+
+                <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                  <option value="due">Sắp đến hạn</option>
+                  <option value="newest">Mới mượn</option>
+                </select>
+
+                <button className="primary-mini borrowed-export-btn" onClick={exportBorrowedList}>
+                  <Download size={16} />
+                  Xuất danh sách
+                </button>
+              </div>
+            </div>
+
+            {filtered.length ? (
+              <div className="table-wrap borrowed-table-wrap">
+                <table className="borrowed-table">
+                  <thead>
+                    <tr>
+                      <th>Sách</th>
+                      <th>Ngày mượn</th>
+                      <th>Hạn trả</th>
+                      <th>Trạng thái</th>
+                      <th>Lượt gia hạn</th>
+                      <th>Phí phạt</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filtered.map((r) => {
+                      const book = getBook(r)
+                      const status = getStatus(r)
+                      const fine = Number(r.estimatedFine || r.fine || 0)
+
+                      return (
+                        <tr key={r.id}>
+                          <td>
+                            <div className="book-cell borrowed-book-cell">
+                              <BookCover book={book} size="tiny" />
+
+                              <span>
+                                <b>{r.bookTitle || book.title || 'Chưa rõ tên sách'}</b>
+                                <small>{r.copyCode || 'Chưa có mã bản sao'}</small>
+                              </span>
+                            </div>
+                          </td>
+
+                          <td>{formatDate(r.borrowDate)}</td>
+
+                          <td>
+                            <b>{formatDate(r.dueDate)}</b>
+                            <small className={status.tone === 'red' ? 'red-text block' : 'muted block'}>
+                              {status.note}
+                            </small>
+                          </td>
+
+                          <td>
+                            <Badge tone={status.tone}>{status.text}</Badge>
+                          </td>
+
+                          <td>
+                            <span className="reader-renew-note">{r.renewCount || 0}/2</span>
+                            <small className="muted block">Thủ thư xử lý</small>
+                          </td>
+
+                          <td className={fine > 0 ? 'red-text strong' : ''}>{currency(fine)}</td>
+
+                          <td>
+                            <div className="action-row borrowed-action-row">
+                              <button
+                                className="reader-return-btn"
+                                onClick={() => onReturn(r)}
+                                disabled={loadingAction === r.id}
+                              >
+                                <WalletCards size={16} />
+                                Trả sách
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyState
+                title="Không có sách đang mượn"
+                message="Khi bạn mượn sách, danh sách sẽ hiển thị tại đây."
+              />
+            )}
           </section>
         </main>
-        <aside>
-          <section className="panel reminder-panel"><h3>Nhắc nhở hạn trả</h3>{dueSoon.length || overdue.length ? [...dueSoon, ...overdue].slice(0, 3).map((r) => <div className="reminder-item" key={r.id}><IconBadge tone={isOverdueRecord(r) ? 'red' : 'orange'}>{isOverdueRecord(r) ? <AlertTriangle size={22} /> : <Clock3 size={22} />}</IconBadge><span><b>{isOverdueRecord(r) ? 'Sách quá hạn' : 'Sách sắp đến hạn'}</b><small>{r.bookTitle}</small><em>{isOverdueRecord(r) ? 'Trả sách ngay' : `Hạn trả: ${formatDate(r.dueDate)}`}</em></span><ChevronRight size={18} /></div>) : <EmptyState title="Không có nhắc nhở" message="Tất cả sách đang trong hạn." />}</section>
-          <section className="panel rule-panel"><h3>Quy định mượn sách</h3><p><Calendar size={20} />Thời gian mượn sách là 14 ngày kể từ ngày mượn.</p><p><RefreshCcw size={20} />Mỗi sách được gia hạn tối đa 2 lần nếu không có người khác đặt mượn.</p><p><AlertTriangle size={20} />Quá hạn sẽ bị tính phí theo quy định của thư viện.</p><p><ShieldCheck size={20} />Vui lòng trả sách đúng hạn để tránh bị khóa quyền mượn.</p></section>
+
+        <aside className="borrowed-side">
+          <section className="panel reminder-panel borrowed-side-card">
+            <h3>Nhắc nhở hạn trả</h3>
+
+            {dueSoon.length || overdue.length ? (
+              [...overdue, ...dueSoon].slice(0, 4).map((r) => {
+                const status = getStatus(r)
+
+                return (
+                  <div className="reminder-item borrowed-reminder-item" key={r.id}>
+                    <IconBadge tone={isOverdueRecord(r) ? 'red' : 'orange'}>
+                      {isOverdueRecord(r) ? <AlertTriangle size={22} /> : <Clock3 size={22} />}
+                    </IconBadge>
+
+                    <span>
+                      <b>{isOverdueRecord(r) ? 'Sách quá hạn' : 'Sách sắp đến hạn'}</b>
+                      <small>{r.bookTitle}</small>
+                      <em>{status.note || `Hạn trả: ${formatDate(r.dueDate)}`}</em>
+                    </span>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="borrowed-empty-mini">
+                <BookOpen size={36} />
+                <b>Không có nhắc nhở</b>
+                <span>Tất cả sách đang trong hạn.</span>
+              </div>
+            )}
+          </section>
+
+          <section className="panel rule-panel borrowed-side-card">
+            <h3>Quy định mượn sách</h3>
+
+            <p>
+              <Calendar size={20} />
+              <span>Thời gian mượn sách là 14 ngày kể từ ngày mượn.</span>
+            </p>
+
+            <p>
+              <RefreshCcw size={20} />
+              <span>Gia hạn sách do thủ thư thực hiện trên màn hình quản lý mượn trả.</span>
+            </p>
+
+            <p>
+              <AlertTriangle size={20} />
+              <span>Quá hạn sẽ bị tính phí theo quy định của thư viện.</span>
+            </p>
+
+            <p>
+              <ShieldCheck size={20} />
+              <span>Vui lòng trả sách đúng hạn để tránh bị khóa quyền mượn.</span>
+            </p>
+          </section>
         </aside>
       </div>
     </div>
   )
 }
-
 function HistoryPage({ records, fines }) {
   const total = records.length
   const returned = records.filter(isReturnedRecord).length
@@ -1144,35 +1555,191 @@ function InfoLine({ icon, label, value }) {
   return <div className="info-line"><span>{icon}{label}</span><b>{value}</b></div>
 }
 
-function SettingsPage({ reader, card, onSaveProfile, onChangePassword, settings, setSettings }) {
+function SettingsPage({ reader, card, onSaveProfile, onChangePassword, settings = {}, setSettings }) {
   const [tab, setTab] = useState('account')
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [passwordSaving, setPasswordSaving] = useState(false)
   const [form, setForm] = useState(reader || {})
   const [password, setPassword] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
-  useEffect(() => setForm(reader || {}), [reader])
+
+  useEffect(() => {
+    setForm(reader || {})
+  }, [reader])
+
+  function updateForm(name, value) {
+    setForm((prev) => ({ ...prev, [name]: value }))
+  }
+
   function updateSetting(name, value) {
     const next = { ...settings, [name]: value }
     setSettings(next)
     saveSettings(next)
   }
 
-  async function saveAccount() { await onSaveProfile(form) }
+  async function saveAccount(e) {
+    e?.preventDefault?.()
+
+    if (!cleanText(form.fullName)) {
+      alert('Vui lòng nhập họ và tên.')
+      return
+    }
+
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      alert('Email không đúng định dạng.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      await onSaveProfile(form)
+      setEditing(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function submitPassword(e) {
     e.preventDefault()
-    if (password.newPassword !== password.confirmPassword) { alert('Mật khẩu xác nhận không khớp.'); return }
-    await onChangePassword(password)
-    setPassword({ currentPassword: '', newPassword: '', confirmPassword: '' })
+
+    if (!password.currentPassword || !password.newPassword || !password.confirmPassword) {
+      alert('Vui lòng nhập đầy đủ thông tin mật khẩu.')
+      return
+    }
+
+    if (password.newPassword.length < 6) {
+      alert('Mật khẩu mới nên có ít nhất 6 ký tự.')
+      return
+    }
+
+    if (password.newPassword !== password.confirmPassword) {
+      alert('Mật khẩu xác nhận không khớp.')
+      return
+    }
+
+    setPasswordSaving(true)
+    try {
+      await onChangePassword({
+        currentPassword: password.currentPassword,
+        oldPassword: password.currentPassword,
+        newPassword: password.newPassword,
+        confirmPassword: password.confirmPassword,
+      })
+      setPassword({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } finally {
+      setPasswordSaving(false)
+    }
+  }
+
+  function resetAccountForm() {
+    setForm(reader || {})
+    setEditing(false)
+  }
+
+  function exportPersonalData() {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      reader,
+      card,
+      settings,
+    }
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'du-lieu-ca-nhan-digilib.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function resetSettings() {
+    const defaults = {
+      confirmReturn: true,
+      autoLock: false,
+      dueNotify: true,
+      newBookNotify: true,
+      fineNotify: true,
+      sidebarCollapsed: false,
+      showCovers: true,
+    }
+
+    setSettings(defaults)
+    saveSettings(defaults)
   }
 
   return (
-    <div className="page-content">
+    <div className="page-content settings-page-fixed">
       <div className="breadcrumb">Trang chủ <ChevronRight size={16} /> Cài đặt</div>
-      <PageTitle title="Cài đặt" desc="Quản lý tài khoản và tùy chọn cá nhân của bạn" />
-      <div className="tabs"><button className={tab === 'account' ? 'active' : ''} onClick={() => setTab('account')}>Tài khoản</button><button className={tab === 'security' ? 'active' : ''} onClick={() => setTab('security')}>Bảo mật</button><button className={tab === 'notify' ? 'active' : ''} onClick={() => setTab('notify')}>Thông báo</button><button className={tab === 'ui' ? 'active' : ''} onClick={() => setTab('ui')}>Giao diện</button></div>
-      {tab === 'account' && <div className="settings-grid"><section className="panel settings-form"><div className="panel-title"><h3>Thông tin tài khoản</h3><button className="outline-mini"><Camera size={16} />Chỉnh sửa</button></div><div className="form-grid"><label>Họ và tên<input value={form.fullName || ''} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></label><label>Địa chỉ<input value={form.address || ''} onChange={(e) => setForm({ ...form, address: e.target.value })} /></label><label>Email<input value={form.email || ''} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label><label>Ngày đăng ký<input value={formatDate(form.createdAt)} disabled /></label><label>Số điện thoại<input value={form.phone || ''} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label><label>Mã độc giả<input value={card?.readerCode || form.readerCode || ''} disabled /></label><label>Ngày sinh<input type="date" value={form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().slice(0,10) : ''} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} /></label><label>Trạng thái tài khoản<span className="input-like"><Badge tone="green">Đang hoạt động</Badge></span></label></div><div className="radio-row"><span>Giới tính</span>{['Nam','Nữ','Khác'].map((g) => <label key={g}><input type="radio" checked={(form.gender || 'Nam') === g} onChange={() => setForm({ ...form, gender: g })} />{g}</label>)}</div><button className="primary-mini save-settings" onClick={saveAccount}><Save size={16} />Lưu thay đổi</button></section><section className="side-stack"><form className="panel password-panel" onSubmit={submitPassword}><h3><LockKeyhole size={18} />Đổi mật khẩu</h3><label>Mật khẩu hiện tại<input type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} /></label><label>Mật khẩu mới<input type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} /></label><label>Xác nhận mật khẩu mới<input type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} /></label><button className="primary-mini full">Đổi mật khẩu</button></form><section className="panel danger-zone"><h3>Xóa tài khoản</h3><p>Khi xóa tài khoản, dữ liệu sẽ do Admin xử lý theo quy định hệ thống.</p><button className="danger-outline" onClick={() => alert('Chức năng xóa tài khoản cần Admin/Thủ thư xác nhận.')}>Xóa tài khoản</button></section></section></div>}
-      {tab === 'security' && <section className="panel settings-card"><h3>Bảo mật</h3><SettingSwitch label="Yêu cầu xác nhận khi trả sách" checked={settings.confirmReturn !== false} onChange={(v) => updateSetting('confirmReturn', v)} /><SettingSwitch label="Tự động khóa màn hình sau 30 phút" checked={settings.autoLock === true} onChange={(v) => updateSetting('autoLock', v)} /><button className="outline-mini"><LogOut size={16} />Đăng xuất tất cả thiết bị</button></section>}
+      <PageTitle title="Cài đặt" desc="Quản lý tài khoản, bảo mật, thông báo và tùy chọn giao diện của bạn" />
+
+      <div className="tabs settings-tabs">
+        <button className={tab === 'account' ? 'active' : ''} onClick={() => setTab('account')}>Tài khoản</button>
+        <button className={tab === 'security' ? 'active' : ''} onClick={() => setTab('security')}>Bảo mật</button>
+        <button className={tab === 'notify' ? 'active' : ''} onClick={() => setTab('notify')}>Thông báo</button>
+        <button className={tab === 'ui' ? 'active' : ''} onClick={() => setTab('ui')}>Giao diện</button>
+      </div>
+
+      {tab === 'account' && (
+        <div className="settings-grid">
+          <form className="panel settings-form" onSubmit={saveAccount}>
+            <div className="panel-title">
+              <h3>Thông tin tài khoản</h3>
+              <div className="settings-title-actions">
+                {editing && <button type="button" className="outline-mini" onClick={resetAccountForm}><X size={16} /> Hủy</button>}
+                <button type="button" className="outline-mini" onClick={() => setEditing((v) => !v)}><Camera size={16} /> {editing ? 'Đang chỉnh sửa' : 'Chỉnh sửa'}</button>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <label>Họ và tên<input disabled={!editing || saving} value={form.fullName || ''} onChange={(e) => updateForm('fullName', e.target.value)} /></label>
+              <label>Địa chỉ<input disabled={!editing || saving} value={form.address || ''} onChange={(e) => updateForm('address', e.target.value)} /></label>
+              <label>Email<input disabled={!editing || saving} value={form.email || ''} onChange={(e) => updateForm('email', e.target.value)} /></label>
+              <label>Ngày đăng ký<input value={formatDate(form.createdAt)} disabled /></label>
+              <label>Số điện thoại<input disabled={!editing || saving} value={form.phone || ''} onChange={(e) => updateForm('phone', e.target.value)} /></label>
+              <label>Mã độc giả<input value={card?.readerCode || form.readerCode || ''} disabled /></label>
+              <label>Ngày sinh<input type="date" disabled={!editing || saving} value={form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().slice(0,10) : ''} onChange={(e) => updateForm('dateOfBirth', e.target.value)} /></label>
+              <label>Trạng thái tài khoản<span className="input-like"><Badge tone={isActiveStatus(form.status) ? 'green' : 'red'}>{statusText(form.status)}</Badge></span></label>
+            </div>
+
+            <div className="radio-row">
+              <span>Giới tính</span>
+              {['Nam', 'Nữ', 'Khác'].map((g) => (
+                <label key={g}><input type="radio" disabled={!editing || saving} checked={(form.gender || 'Nam') === g} onChange={() => updateForm('gender', g)} />{g}</label>
+              ))}
+            </div>
+
+            <button className="primary-mini save-settings" type="submit" disabled={!editing || saving}><Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu thay đổi'}</button>
+          </form>
+
+          <section className="side-stack">
+            <form className="panel password-panel" onSubmit={submitPassword}>
+              <h3><LockKeyhole size={18} /> Đổi mật khẩu</h3>
+              <label>Mật khẩu hiện tại<input type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} /></label>
+              <label>Mật khẩu mới<input type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} /></label>
+              <label>Xác nhận mật khẩu mới<input type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} /></label>
+              <button className="primary-mini full" type="submit" disabled={passwordSaving}>{passwordSaving ? 'Đang đổi mật khẩu...' : 'Đổi mật khẩu'}</button>
+            </form>
+
+            <section className="panel danger-zone">
+              <h3>Xóa tài khoản</h3>
+              <p>Khi xóa tài khoản, dữ liệu sẽ do Admin xử lý theo quy định hệ thống.</p>
+              <button className="danger-outline" onClick={() => alert('Chức năng xóa tài khoản cần Admin/Thủ thư xác nhận.')}>Xóa tài khoản</button>
+            </section>
+          </section>
+        </div>
+      )}
+
+      {tab === 'security' && <section className="panel settings-card"><h3>Bảo mật</h3><SettingSwitch label="Yêu cầu xác nhận khi trả sách" checked={settings.confirmReturn !== false} onChange={(v) => updateSetting('confirmReturn', v)} /><SettingSwitch label="Tự động khóa màn hình sau 30 phút" checked={settings.autoLock === true} onChange={(v) => updateSetting('autoLock', v)} /><button className="outline-mini" onClick={() => alert('Đã lưu tùy chọn bảo mật trên thiết bị hiện tại. Muốn đăng xuất mọi thiết bị cần backend hỗ trợ revoke token.')}><LogOut size={16} />Đăng xuất tất cả thiết bị</button></section>}
       {tab === 'notify' && <section className="panel settings-card"><h3>Thông báo</h3><SettingSwitch label="Nhắc hạn trả sách" checked={settings.dueNotify !== false} onChange={(v) => updateSetting('dueNotify', v)} /><SettingSwitch label="Thông báo sách mới" checked={settings.newBookNotify !== false} onChange={(v) => updateSetting('newBookNotify', v)} /><SettingSwitch label="Thông báo phí phạt" checked={settings.fineNotify !== false} onChange={(v) => updateSetting('fineNotify', v)} /></section>}
-      {tab === 'ui' && <section className="panel settings-card"><h3>Giao diện</h3><SettingSwitch label="Thu gọn sidebar mặc định" checked={settings.sidebarCollapsed === true} onChange={(v) => updateSetting('sidebarCollapsed', v)} /><SettingSwitch label="Hiển thị ảnh bìa sách" checked={settings.showCovers !== false} onChange={(v) => updateSetting('showCovers', v)} /><button className="outline-mini" onClick={() => { localStorage.removeItem(SETTINGS_KEY); setSettings({}) }}>Khôi phục mặc định</button></section>}
-      <section className="panel other-options"><h3>Tùy chọn khác</h3><div><IconBadge><Download size={26} /></IconBadge><span><b>Xuất dữ liệu cá nhân</b><small>Tải về bản sao dữ liệu cá nhân của bạn từ hệ thống.</small><button className="outline-mini">Xuất dữ liệu</button></span></div><div><IconBadge tone="red"><LogOut size={26} /></IconBadge><span><b>Đăng xuất thiết bị khác</b><small>Đăng xuất khỏi tất cả thiết bị khác đang đăng nhập.</small><button className="outline-mini">Đăng xuất tất cả</button></span></div><div><IconBadge tone="orange"><Info size={26} /></IconBadge><span><b>Trợ giúp & Hỗ trợ</b><small>Xem câu hỏi thường gặp hoặc liên hệ hỗ trợ khi cần thiết.</small><button className="outline-mini">Xem hỗ trợ</button></span></div></section>
+      {tab === 'ui' && <section className="panel settings-card"><h3>Giao diện</h3><SettingSwitch label="Thu gọn sidebar mặc định" checked={settings.sidebarCollapsed === true} onChange={(v) => updateSetting('sidebarCollapsed', v)} /><SettingSwitch label="Hiển thị ảnh bìa sách" checked={settings.showCovers !== false} onChange={(v) => updateSetting('showCovers', v)} /><button className="outline-mini" onClick={resetSettings}>Khôi phục mặc định</button></section>}
+
+      <section className="panel other-options">
+        <h3>Tùy chọn khác</h3>
+        <div><IconBadge><Download size={26} /></IconBadge><span><b>Xuất dữ liệu cá nhân</b><small>Tải về bản sao dữ liệu cá nhân của bạn từ hệ thống.</small><button className="outline-mini" onClick={exportPersonalData}>Xuất dữ liệu</button></span></div>
+        <div><IconBadge tone="red"><LogOut size={26} /></IconBadge><span><b>Đăng xuất thiết bị khác</b><small>Đăng xuất khỏi tất cả thiết bị khác đang đăng nhập.</small><button className="outline-mini" onClick={() => alert('Chức năng này cần backend hỗ trợ thu hồi token của các thiết bị khác.')}>Đăng xuất tất cả</button></span></div>
+        <div><IconBadge tone="orange"><Info size={26} /></IconBadge><span><b>Trợ giúp & Hỗ trợ</b><small>Xem câu hỏi thường gặp hoặc liên hệ hỗ trợ khi cần thiết.</small><button className="outline-mini" onClick={() => alert('Bạn có thể liên hệ thư viện qua mục Liên hệ hoặc gặp trực tiếp thủ thư.')}>Xem hỗ trợ</button></span></div>
+      </section>
     </div>
   )
 }
@@ -1181,11 +1748,41 @@ function SettingSwitch({ label, checked, onChange }) {
   return <label className="setting-switch"><span>{label}</span><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /><i /></label>
 }
 
-function SearchPage({ query, books, onBorrow, onDetail }) {
+function SearchPage({ query, category, books, onBorrow, onDetail }) {
+  const title = category ? `Thể loại: ${category}` : 'Kết quả tìm kiếm'
+  const desc = category
+    ? `Danh sách sách thuộc thể loại “${category}”.`
+    : query
+      ? `Kết quả cho từ khóa “${query}”.`
+      : 'Nhập từ khóa ở thanh tìm kiếm phía trên để tra cứu sách.'
+
   return (
     <div className="page-content">
-      <PageTitle title="Kết quả tìm kiếm" desc={query ? `Kết quả cho từ khóa “${query}”` : 'Nhập từ khóa ở thanh tìm kiếm phía trên để tra cứu sách'} />
-      <section className="panel"><div className="panel-title"><h3>Danh sách sách</h3><span>{books.length} kết quả</span></div>{books.length ? <div className="search-results-grid">{books.map((book) => <BookListCard key={book.id} book={book} onBorrow={onBorrow} onDetail={onDetail} />)}</div> : <EmptyState title="Không tìm thấy sách" message="Thử tìm theo tên sách, tác giả, ISBN hoặc thể loại khác." />}</section>
+      <PageTitle title={title} desc={desc} />
+
+      <section className="panel">
+        <div className="panel-title">
+          <h3>{category ? `Sách thuộc thể loại ${category}` : 'Danh sách sách'}</h3>
+          <span>{books.length} kết quả</span>
+        </div>
+
+        {books.length ? (
+          <div className="search-results-grid">
+            {books.map((book) => (
+              <BookListCard key={book.id} book={book} onBorrow={onBorrow} onDetail={onDetail} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title={category ? 'Chưa có sách thuộc thể loại này' : 'Không tìm thấy sách'}
+            message={
+              category
+                ? `Hiện chưa tìm thấy sách thuộc thể loại “${category}”.`
+                : 'Thử tìm theo tên sách, tác giả, ISBN hoặc thể loại khác.'
+            }
+          />
+        )}
+      </section>
     </div>
   )
 }
@@ -1216,6 +1813,7 @@ export default function App() {
   const [notifications, setNotifications] = useState([])
   const [searchText, setSearchText] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [page, setPage] = useState(PAGE.HOME)
   const [toasts, setToasts] = useState([])
@@ -1225,6 +1823,11 @@ export default function App() {
   const [selectedCopies, setSelectedCopies] = useState([])
   const [confirm, setConfirm] = useState(null)
   const [settings, setSettings] = useState(getSavedSettings())
+
+  useEffect(() => {
+    document.body.classList.toggle('reader-hide-covers', settings.showCovers === false)
+    return () => document.body.classList.remove('reader-hide-covers')
+  }, [settings.showCovers])
 
   const portalUserId = useMemo(() => getPortalUserId({ user, reader, card }), [user, reader, card])
   const readerNumber = useMemo(() => getReaderNumber(reader, card), [reader, card])
@@ -1287,7 +1890,6 @@ export default function App() {
     const nextReaderNumber = getReaderNumber(nextReader, nextCard)
     const cardNumber = nextCard?.cardNumber || nextReader?.cardNumber || nextReader?.readerCode
 
-    let recordItems = []
     const [recordRes, fineRes, notiRes, catCurrentRes, catHistoryRes] = await Promise.allSettled([
       api.records(cardNumber ? { cardNumber } : { readerId: nextReaderNumber }),
       api.fines(cardNumber ? { cardNumber } : { readerId: nextReaderNumber }),
@@ -1299,25 +1901,10 @@ export default function App() {
     if (recordRes.status === 'fulfilled') {
       let items = toArray(recordRes.value).map(normalizeRecord)
       if (!cardNumber && nextReader?.fullName) items = items.filter((r) => matchRecordForReader(r, nextReader, nextCard))
-      recordItems = items
       setRecords(items)
     }
     if (fineRes.status === 'fulfilled') setFines(toArray(fineRes.value).map(normalizeFine))
-    if (notiRes.status === 'fulfilled') {
-      const apiNotifications = toArray(notiRes.value).map(normalizeNotification)
-      const recordNotifications = recordItems.slice(0, 8).map((record) => ({
-        id: `borrow-record-${record.id}-${record.status}`,
-        type: 'borrow',
-        title: String(record.status || '').toLowerCase() === 'pending' ? 'Yêu cầu mượn đang chờ duyệt' : 'Mượn sách thành công',
-        message: String(record.status || '').toLowerCase() === 'pending'
-          ? `Yêu cầu mượn "${record.bookTitle}" đã được gửi tới thủ thư.`
-          : `Phiếu mượn "${record.bookTitle}" đã được thủ thư duyệt.`,
-        createdAt: record.borrowDate,
-        isRead: true,
-        relatedBookId: record.bookId,
-      }))
-      setNotifications([...recordNotifications, ...apiNotifications])
-    }
+    if (notiRes.status === 'fulfilled') setNotifications(toArray(notiRes.value).map(normalizeNotification))
     const catalogItems = []
     if (catCurrentRes.status === 'fulfilled') catalogItems.push(...toArray(catCurrentRes.value).map(normalizeRecord))
     if (catHistoryRes.status === 'fulfilled') catalogItems.push(...toArray(catHistoryRes.value).map(normalizeRecord))
@@ -1369,33 +1956,61 @@ export default function App() {
 
   async function handleSearch(query) {
     const q = cleanText(query, '')
+    setSelectedCategory('')
+    setSearchText(q)
     setSearchQuery(q)
     setPage(PAGE.SEARCH)
+
     if (!q) {
       setSearchResults(books)
       return
     }
+
+    const localFallback = books.filter((book) => bookMatchesKeyword(book, q))
+
     setLoading(true)
     try {
-      const result = await api.searchBooks({ keyword: q })
-      const list = toArray(result).map(normalizeBook)
+      const result = await api.searchBooks({ keyword: q, title: q, author: q, category: q, isbn: q })
+      const apiList = toArray(result).map(normalizeBook)
+      const list = apiList.length ? apiList : localFallback
+
       setSearchResults(list)
-      if (!list.length) addToast('Không tìm thấy sách', `Không có kết quả phù hợp với “${q}”.`, 'warning')
+
+      if (!list.length) {
+        addToast('Không tìm thấy sách', `Không có kết quả phù hợp với “${q}”.`, 'warning')
+      }
     } catch (err) {
-      const fallback = books.filter((b) => removeVietnamese([b.title, b.author, b.category, b.isbn].join(' ')).includes(removeVietnamese(q)))
-      setSearchResults(fallback)
-      addToast('Tìm kiếm qua API không thành công', 'Đã lọc tạm trên dữ liệu sách đã tải.', 'warning')
+      setSearchResults(localFallback)
+
+      if (!localFallback.length) {
+        addToast('Không tìm thấy sách', `Không có kết quả phù hợp với “${q}”.`, 'warning')
+      } else {
+        addToast('Tìm kiếm qua API không thành công', 'Đã lọc tạm trên dữ liệu sách đã tải.', 'warning')
+      }
     } finally {
       setLoading(false)
     }
   }
 
   async function handleCategory(name) {
-    if (!name) return
-    setSearchText(name)
-    setSearchQuery(name)
-    setSearchResults(books.filter((book) => removeVietnamese(book.category) === removeVietnamese(name)))
+    const categoryName = getCategoryName(name, '')
+    if (!categoryName) return
+
+    setSelectedCategory(categoryName)
+    setSearchText(categoryName)
+    setSearchQuery(categoryName)
     setPage(PAGE.SEARCH)
+
+    const localList = books.filter((book) => isSameCategory(book.category, categoryName))
+    setSearchResults(localList)
+
+    if (!localList.length) {
+      addToast(
+        'Chưa có sách thuộc thể loại này',
+        `Không tìm thấy sách thuộc thể loại “${categoryName}”.`,
+        'warning',
+      )
+    }
   }
 
   async function openBookDetail(book) {
@@ -1448,10 +2063,9 @@ export default function App() {
         bookId: Number(book.id),
         bookTitle: book.title,
         borrowDate: new Date().toISOString(),
-        autoApprove: false,
       })
 
-      addToast('Đã gửi yêu cầu mượn', `Yêu cầu mượn “${book.title}” đang chờ thủ thư duyệt.`, 'warning')
+      addToast('Mượn sách thành công', `Sách “${book.title}” đã được ghi nhận trong Circulation Service.`)
       setSelectedBook(null)
       await Promise.all([loadCatalog(), loadReaderActivity()])
     } catch (err) {
@@ -1500,13 +2114,39 @@ export default function App() {
   }
 
   async function handleSaveProfile(form) {
+    const payload = {
+      fullName: form.fullName,
+      email: form.email,
+      phone: form.phone,
+      dateOfBirth: form.dateOfBirth || null,
+      gender: form.gender,
+      address: form.address,
+    }
+
     try {
-      await api.updateProfile({ fullName: form.fullName, email: form.email, phone: form.phone, dateOfBirth: form.dateOfBirth || null, gender: form.gender, address: form.address })
-      addToast('Đã lưu hồ sơ', 'Thông tin cá nhân đã được cập nhật.')
-      const nextReader = normalizeReader(await api.readerMe())
+      await api.updateProfile(payload)
+      let nextReader = null
+
+      try {
+        nextReader = normalizeReader(await api.readerMe())
+      } catch {
+        nextReader = normalizeReader({ ...reader, ...payload })
+      }
+
       setReader(nextReader)
+      saveUser({ ...user, ...nextReader })
+      addToast('Đã lưu hồ sơ', 'Thông tin cá nhân đã được cập nhật.')
+      return true
     } catch (err) {
-      addToast('Không lưu được hồ sơ', getErrorMessage(err), 'error')
+      const nextReader = normalizeReader({ ...reader, ...payload })
+      setReader(nextReader)
+      saveUser({ ...user, ...nextReader })
+      addToast(
+        'Đã lưu tạm trên giao diện',
+        `Backend chưa cập nhật hồ sơ được: ${getErrorMessage(err)}. Dữ liệu vẫn được giữ trên màn hình hiện tại.`,
+        'warning',
+      )
+      return false
     }
   }
 
@@ -1514,8 +2154,10 @@ export default function App() {
     try {
       await api.changePassword(payload)
       addToast('Đã đổi mật khẩu', 'Mật khẩu tài khoản đã được cập nhật.')
+      return true
     } catch (err) {
       addToast('Không đổi được mật khẩu', getErrorMessage(err), 'error')
+      return false
     }
   }
 
@@ -1562,16 +2204,24 @@ export default function App() {
 
   return (
     <>
-      <AppShell page={page} setPage={setPage} user={user} reader={reader} card={card} searchText={searchText} setSearchText={setSearchText} onSearch={handleSearch} notifications={notifications} onMarkNotification={markNotification} onMarkAllNotifications={markAllNotifications} onRefresh={loadAll} onLogout={logout}>
+      <AppShell page={page} setPage={setPage} user={user} reader={reader} card={card} searchText={searchText} setSearchText={setSearchText} onSearch={handleSearch} notifications={notifications} onMarkNotification={markNotification} onMarkAllNotifications={markAllNotifications} onRefresh={loadAll} onLogout={logout} settings={settings} setSettings={setSettings}>
         {loading && <div className="top-loading" />}
         {page === PAGE.HOME && <HomePage reader={reader} featuredBooks={featuredBooks} books={books} currentRecords={currentRecords} categories={categories} onPage={setPage} onBorrow={handleBorrow} onDetail={openBookDetail} onCategory={handleCategory} />}
         {page === PAGE.FEATURED && <FeaturedPage books={featuredBooks.length ? featuredBooks : books} onBorrow={handleBorrow} onDetail={openBookDetail} onCategory={handleCategory} />}
-        {page === PAGE.BORROWED && <BorrowedPage records={records} onRenew={confirmRenew} onReturn={confirmReturn} loadingAction={loadingAction} />}
+        {page === PAGE.BORROWED && <BorrowedPage records={records} onReturn={confirmReturn} loadingAction={loadingAction} />}
         {page === PAGE.HISTORY && <HistoryPage records={historyRecords} fines={fines} />}
         {page === PAGE.PROFILE && <ProfilePage reader={reader} card={card} records={historyRecords} fines={fines} onSaveProfile={handleSaveProfile} />}
         {page === PAGE.CARD && <LibraryCardPage reader={reader} card={card} records={historyRecords} />}
         {page === PAGE.SETTINGS && <SettingsPage reader={reader} card={card} onSaveProfile={handleSaveProfile} onChangePassword={handleChangePassword} settings={settings} setSettings={setSettings} />}
-        {page === PAGE.SEARCH && <SearchPage query={searchQuery} books={searchQuery ? searchResults : books} onBorrow={handleBorrow} onDetail={openBookDetail} />}
+        {page === PAGE.SEARCH && (
+          <SearchPage
+            query={searchQuery}
+            category={selectedCategory}
+            books={selectedCategory || searchQuery ? searchResults : books}
+            onBorrow={handleBorrow}
+            onDetail={openBookDetail}
+          />
+        )}
       </AppShell>
       <BookDetailModal book={selectedBook} copies={selectedCopies} onClose={() => setSelectedBook(null)} onBorrow={handleBorrow} />
       <ConfirmModal open={!!confirm} title={confirm?.title} message={confirm?.message} confirmText={confirm?.confirmText} danger={confirm?.danger} onClose={() => setConfirm(null)} onConfirm={confirm?.action} />

@@ -8,10 +8,9 @@
         </div>
 
         <div class="hero-content">
-          <h1>Thư viện số DIGILIB dùng chung một tài khoản</h1>
+          <h1>Thư viện số DIGILIB</h1>
           <p>
-            Admin, Thủ thư và Độc giả sử dụng chung một màn hình đăng nhập.
-            Sau khi xác thực thành công, hệ thống sẽ tự động chuyển đến đúng giao diện theo vai trò tài khoản.
+            Chào mừng bạn đến với kho sách DIGILIB.
           </p>
         </div>
 

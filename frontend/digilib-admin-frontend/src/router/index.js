@@ -165,10 +165,30 @@ function isAdminPortalRole(role) {
   )
 }
 
-function readStoredUser() {
-  const keys = ['digilib_user', 'admin_user', 'digilib_admin_user']
+const TOKEN_STORAGE_KEYS = [
+  'digilib_token',
+  'admin_token',
+  'digilib_admin_token',
+  'librarian_token',
+  'reader_token',
+  'token',
+  'accessToken',
+  'authToken',
+  'auth_token',
+  'user_token'
+]
 
-  for (const key of keys) {
+const USER_STORAGE_KEYS = [
+  'digilib_user',
+  'admin_user',
+  'digilib_admin_user',
+  'librarian_user',
+  'reader_user',
+  'user'
+]
+
+function readStoredUser() {
+  for (const key of USER_STORAGE_KEYS) {
     try {
       const raw = localStorage.getItem(key)
 
@@ -188,36 +208,18 @@ function readStoredUser() {
 }
 
 function hasStoredToken() {
-  return Boolean(
-    localStorage.getItem('digilib_token') ||
-    localStorage.getItem('admin_token') ||
-    localStorage.getItem('digilib_admin_token')
-  )
+  return TOKEN_STORAGE_KEYS.some((key) => Boolean(localStorage.getItem(key)))
 }
 
 function clearWrongPortalSession(auth) {
   try {
     auth.logout()
   } catch {
-    [
-      'digilib_token',
-      'admin_token',
-      'digilib_admin_token',
-      'librarian_token',
-      'reader_token',
-      'user_token',
-      'token',
-      'auth_token',
-      'accessToken',
-      'digilib_user',
-      'admin_user',
-      'digilib_admin_user',
-      'librarian_user',
-      'reader_user',
-      'digilib_reader_user',
-      'user',
-      'auth_user'
+    ;[
+      ...TOKEN_STORAGE_KEYS,
+      ...USER_STORAGE_KEYS
     ].forEach((key) => localStorage.removeItem(key))
+    sessionStorage.clear()
   }
 }
 

@@ -324,8 +324,9 @@ function openNotification(item) {
 }
 
 function logout() {
+  profileOpen.value = false
   auth.logout()
-  router.push('/login')
+  router.replace('/login')
 }
 
 function handleShortcut(event) {
