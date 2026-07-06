@@ -1,60 +1,23 @@
 import { defineStore } from 'pinia'
 import { authApi } from '../services/api'
 
-const AUTH_STORAGE_KEYS = [
-  'digilib_token',
-  'digilib_user',
-  'digilib_admin_token',
-  'digilib_admin_user',
-  'admin_token',
-  'admin_user',
-  'librarian_token',
-  'librarian_user',
-  'reader_token',
-  'reader_user',
-  'token',
-  'user',
-  'accessToken',
-  'authToken',
-  'auth_token',
-  'user_token'
-]
-
-function clearAuthStorage() {
-  AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key))
-  sessionStorage.clear()
-}
-
-function normalizeUser(user) {
-  if (!user) return null
-  return {
-    id: user.id,
-    name: user.fullName || user.name || user.username || user.email || 'Admin',
-    username: user.username || '',
-    email: user.email || '',
-    phone: user.phone || '',
-    role: user.roleName || user.role || '',
-    status: user.status,
-    avatar: user.avatar || user.avatarUrl || ''
-  }
-}
-
 const TOKEN_KEYS = [
   'digilib_token',
-  'admin_token',
   'digilib_admin_token',
+  'admin_token',
   'librarian_token',
   'reader_token',
   'user_token',
   'token',
   'auth_token',
-  'accessToken'
+  'accessToken',
+  'authToken'
 ]
 
 const USER_KEYS = [
   'digilib_user',
-  'admin_user',
   'digilib_admin_user',
+  'admin_user',
   'librarian_user',
   'reader_user',
   'digilib_reader_user',
@@ -62,74 +25,315 @@ const USER_KEYS = [
   'auth_user'
 ]
 
+const AUTH_STORAGE_KEYS = [...TOKEN_KEYS, ...USER_KEYS]
+
 function clearAuthStorage() {
-  TOKEN_KEYS.forEach((key) => localStorage.removeItem(key))
-  USER_KEYS.forEach((key) => localStorage.removeItem(key))
+  AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key))
+  sessionStorage.clear()
+}
+
+function safeJsonParse(value) {
+  try {
+    return value ? JSON.parse(value) : null
+  } catch {
+    return null
+  }
+}
+
+function getStoredToken() {
+  for (const key of TOKEN_KEYS) {
+    const value = localStorage.getItem(key)
+
+    if (value) {
+      return value
+    }
+  }
+
+  return ''
+}
+
+function getStoredUser() {
+  for (const key of USER_KEYS) {
+    const value = safeJsonParse(localStorage.getItem(key))
+
+    if (value) {
+      return normalizeUser(value)
+    }
+  }
+
+  return null
+}
+
+function normalizeRole(role) {
+  if (!role) return 'Admin'
+
+  const raw = String(role).trim()
+  const lower = raw.toLowerCase()
+
+  if (lower.includes('admin')) return 'Admin'
+  if (lower.includes('librarian') || lower.includes('thủ thư') || lower.includes('thu thu')) {
+    return 'Thủ thư'
+  }
+  if (lower.includes('reader') || lower.includes('độc giả') || lower.includes('doc gia')) {
+    return 'Độc giả'
+  }
+
+  return raw
+}
+
+function normalizeUser(user) {
+  if (!user) return null
+
+  const source = user?.user || user?.data?.user || user?.profile || user
+
+  const name =
+    source.fullName ||
+    source.name ||
+    source.username ||
+    source.email ||
+    'Admin'
+
+  return {
+    id: source.id || source.userId || source.accountId || '',
+    name,
+    fullName: source.fullName || name,
+    username: source.username || '',
+    email: source.email || '',
+    phone: source.phone || source.phoneNumber || '',
+    role: normalizeRole(source.roleName || source.role || source.userRole || 'Admin'),
+    status: source.status || 'Active',
+    avatar: source.avatar || source.avatarUrl || ''
+  }
+}
+
+function extractPayload(data) {
+  return data?.data || data?.result || data || {}
+}
+
+function extractToken(payload, rawData) {
+  return (
+    payload?.token ||
+    payload?.accessToken ||
+    payload?.access_token ||
+    payload?.jwtToken ||
+    payload?.jwt ||
+    rawData?.token ||
+    rawData?.accessToken ||
+    rawData?.access_token ||
+    rawData?.jwtToken ||
+    rawData?.jwt ||
+    ''
+  )
+}
+
+function extractUser(payload, rawData) {
+  return (
+    payload?.user ||
+    payload?.account ||
+    payload?.profile ||
+    rawData?.user ||
+    rawData?.account ||
+    rawData?.profile ||
+    payload
+  )
+}
+
+function saveAuthStorage(token, user) {
+  const normalizedUser = normalizeUser(user)
+  const role = String(normalizedUser?.role || '').toLowerCase()
+
+  localStorage.setItem('digilib_token', token)
+  localStorage.setItem('token', token)
+  localStorage.setItem('digilib_user', JSON.stringify(normalizedUser))
+  localStorage.setItem('user', JSON.stringify(normalizedUser))
+
+  if (role.includes('admin')) {
+    localStorage.setItem('admin_token', token)
+    localStorage.setItem('digilib_admin_token', token)
+    localStorage.setItem('admin_user', JSON.stringify(normalizedUser))
+    localStorage.setItem('digilib_admin_user', JSON.stringify(normalizedUser))
+  }
+
+  if (role.includes('thủ thư') || role.includes('librarian')) {
+    localStorage.setItem('librarian_token', token)
+    localStorage.setItem('librarian_user', JSON.stringify(normalizedUser))
+  }
+
+  if (role.includes('độc giả') || role.includes('reader')) {
+    localStorage.setItem('reader_token', token)
+    localStorage.setItem('reader_user', JSON.stringify(normalizedUser))
+  }
+
+  return normalizedUser
 }
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    token: localStorage.getItem('digilib_token') || localStorage.getItem('admin_token') || '',
-    user: normalizeUser(JSON.parse(localStorage.getItem('digilib_user') || localStorage.getItem('admin_user') || 'null'))
+    token: getStoredToken(),
+    user: getStoredUser(),
+    loading: false
   }),
+
   getters: {
     isAuthenticated: (state) => Boolean(state.token),
-    isAdmin: (state) => ['Admin', 'Quản lý Catalog', 'Báo cáo viên'].includes(state.user?.role),
-    isLibrarian: (state) => state.user?.role === 'Thủ thư',
-    isReader: (state) => state.user?.role === 'Độc giả',
+
+    isAdmin: (state) => {
+      const role = String(state.user?.role || '').toLowerCase()
+
+      return (
+        role.includes('admin') ||
+        role.includes('quản lý') ||
+        role.includes('bao cao') ||
+        role.includes('báo cáo')
+      )
+    },
+
+    isLibrarian: (state) => {
+      const role = String(state.user?.role || '').toLowerCase()
+
+      return role.includes('thủ thư') || role.includes('librarian')
+    },
+
+    isReader: (state) => {
+      const role = String(state.user?.role || '').toLowerCase()
+
+      return role.includes('độc giả') || role.includes('reader')
+    },
+
     initials: (state) => {
-      const name = state.user?.name || state.user?.username || 'A'
-      return name
+      const name =
+        state.user?.name ||
+        state.user?.fullName ||
+        state.user?.username ||
+        state.user?.email ||
+        'A'
+
+      const initials = String(name)
+        .trim()
         .split(' ')
         .filter(Boolean)
         .slice(-2)
-        .map((x) => x[0])
+        .map((item) => item[0])
         .join('')
         .toUpperCase()
+
+      return initials || 'A'
     }
   },
+
   actions: {
-    async login(username, password) {
-      if (!username || !password) throw new Error('Vui lòng nhập đầy đủ tài khoản và mật khẩu')
-      const { data } = await authApi.login({ usernameOrEmail: username, password })
-      const payload = data?.data || data || {}
-      const token = payload.token || payload.accessToken || payload.jwtToken || data?.token || data?.accessToken || data?.jwtToken
-      const user = payload.user || data?.user || payload
-      if (!token) throw new Error('API không trả về token đăng nhập')
-      this.token = token
-      this.user = normalizeUser(user)
-      localStorage.setItem('digilib_token', this.token)
-      localStorage.setItem('digilib_user', JSON.stringify(this.user))
-      localStorage.setItem('admin_token', this.token)
-      localStorage.setItem('admin_user', JSON.stringify(this.user))
-      return this.user
+    hydrate() {
+      this.token = getStoredToken()
+      this.user = getStoredUser()
     },
+
+    setAuth(token, userPayload) {
+      if (!token) {
+        throw new Error('Không có token đăng nhập')
+      }
+
+      const user = saveAuthStorage(token, userPayload)
+
+      this.token = token
+      this.user = user
+
+      return user
+    },
+
+    async login(usernameOrPayload, password) {
+      if (!usernameOrPayload) {
+        throw new Error('Vui lòng nhập tài khoản')
+      }
+
+      let payload
+
+      if (typeof usernameOrPayload === 'object') {
+        payload = usernameOrPayload
+      } else {
+        if (!password) {
+          throw new Error('Vui lòng nhập mật khẩu')
+        }
+
+        payload = {
+          usernameOrEmail: usernameOrPayload,
+          password
+        }
+      }
+
+      this.loading = true
+
+      try {
+        const { data } = await authApi.login(payload)
+        const responsePayload = extractPayload(data)
+        const token = extractToken(responsePayload, data)
+        const userPayload = extractUser(responsePayload, data)
+
+        if (!token) {
+          throw new Error('API không trả về token đăng nhập')
+        }
+
+        const user = saveAuthStorage(token, userPayload)
+
+        this.token = token
+        this.user = user
+
+        return user
+      } finally {
+        this.loading = false
+      }
+    },
+
     async register(payload) {
       const { data } = await authApi.register(payload)
-      const responsePayload = data?.data || data || {}
-      const token = responsePayload.token || responsePayload.accessToken || responsePayload.jwtToken || data?.token || data?.accessToken || data?.jwtToken
-      const user = responsePayload.user || data?.user || responsePayload
-      if (!token) return normalizeUser(user)
+      const responsePayload = extractPayload(data)
+      const token = extractToken(responsePayload, data)
+      const userPayload = extractUser(responsePayload, data)
+
+      if (!token) {
+        return normalizeUser(userPayload)
+      }
+
+      const user = saveAuthStorage(token, userPayload)
+
       this.token = token
-      this.user = normalizeUser(user)
-      localStorage.setItem('digilib_token', this.token)
-      localStorage.setItem('digilib_user', JSON.stringify(this.user))
-      localStorage.setItem('admin_token', this.token)
-      localStorage.setItem('admin_user', JSON.stringify(this.user))
-      return this.user
+      this.user = user
+
+      return user
     },
+
     async refreshMe() {
-      if (!this.token) return null
+      if (!this.token) {
+        return null
+      }
+
       const { data } = await authApi.me()
-      this.user = normalizeUser(data)
-      localStorage.setItem('digilib_user', JSON.stringify(this.user))
-      localStorage.setItem('admin_user', JSON.stringify(this.user))
-      return this.user
+      const responsePayload = extractPayload(data)
+      const userPayload = extractUser(responsePayload, data)
+      const user = normalizeUser(userPayload)
+
+      this.user = user
+
+      localStorage.setItem('digilib_user', JSON.stringify(user))
+      localStorage.setItem('user', JSON.stringify(user))
+
+      const role = String(user?.role || '').toLowerCase()
+
+      if (role.includes('admin')) {
+        localStorage.setItem('admin_user', JSON.stringify(user))
+        localStorage.setItem('digilib_admin_user', JSON.stringify(user))
+      }
+
+      return user
     },
+
     logout() {
       this.token = ''
       this.user = null
       clearAuthStorage()
+    },
+
+    clearAuth() {
+      this.logout()
     }
   }
 })

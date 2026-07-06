@@ -21,8 +21,8 @@ export const AUTH_STORAGE_KEYS = [
 
 const TOKEN_KEYS = [
   'digilib_token',
-  'admin_token',
   'digilib_admin_token',
+  'admin_token',
   'librarian_token',
   'reader_token',
   'token',
@@ -33,7 +33,10 @@ const TOKEN_KEYS = [
 ]
 
 export function clearAuthStorage() {
-  AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key))
+  AUTH_STORAGE_KEYS.forEach((key) => {
+    localStorage.removeItem(key)
+  })
+
   sessionStorage.clear()
 }
 
@@ -41,32 +44,61 @@ function getStoredToken() {
   for (const key of TOKEN_KEYS) {
     const value = localStorage.getItem(key)
 
-    if (value) return value
+    if (value) {
+      return value
+    }
   }
 
   return ''
 }
 
+function normalizeBaseURL() {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+
+  return String(baseURL).replace(/\/+$/, '')
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
-  timeout: 20000
-})
-
-api.interceptors.request.use((config) => {
-  const token = getStoredToken()
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  baseURL: normalizeBaseURL(),
+  timeout: 20000,
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json'
   }
-
-  return config
 })
+
+api.interceptors.request.use(
+  (config) => {
+    const token = getStoredToken()
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
 
 api.interceptors.response.use(
-  (res) => res,
+  (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    const status = error?.response?.status
+    const url = error?.config?.url || ''
+
+    const isLoginRequest =
+      url.includes('/api/auth/login') ||
+      url.includes('/api/auth/register') ||
+      url.includes('/api/auth/google')
+
+    if (status === 401 && !isLoginRequest) {
       clearAuthStorage()
+
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login'
+      }
     }
 
     return Promise.reject(error)
@@ -86,8 +118,24 @@ export const authApi = {
     return api.get('/api/auth/me')
   },
 
+  profile() {
+    return api.get('/api/profile')
+  },
+
+  updateProfile(payload) {
+    return api.put('/api/profile', payload)
+  },
+
+  changePassword(payload) {
+    return api.put('/api/profile/change-password', payload)
+  },
+
   logout() {
     return api.post('/api/auth/logout')
+  },
+
+  googleLogin(payload) {
+    return api.post('/api/auth/google', payload)
   }
 }
 
@@ -133,11 +181,6 @@ export const catalogApi = {
 
   // =========================
   // BOOK COPIES THEO BOOK ID
-  // Backend hiện tại đang có:
-  // GET    /api/books/{bookId}/copies
-  // POST   /api/books/{bookId}/copies
-  // PUT    /api/books/{bookId}/copies/{copyId}
-  // DELETE /api/books/{bookId}/copies/{copyId}
   // =========================
   bookCopies(bookId) {
     return api.get(`/api/books/${bookId}/copies`)
@@ -165,7 +208,6 @@ export const catalogApi = {
 
   // =========================
   // COPIES RIÊNG
-  // Giữ lại để tránh lỗi các màn hình cũ đang gọi /api/copies
   // =========================
   copies(params) {
     return api.get('/api/copies', { params })
@@ -272,39 +314,58 @@ export const circulationApi = {
     return api.get('/api/borrow-tickets', { params })
   },
 
-  borrowRecords(params) {
-    return api.get('/api/borrow-records', { params })
-  },
-
   borrowTicket(id) {
     return api.get(`/api/borrow-tickets/${id}`)
-  },
-
-  borrowRecord(id) {
-    return api.get(`/api/borrow-records/${id}`)
   },
 
   createBorrowTicket(payload) {
     return api.post('/api/borrow-tickets', payload)
   },
 
-  createBorrowRecord(payload) {
-    return api.post('/api/borrow-records', payload)
-  },
-
   returnBorrowTicket(id, payload) {
     return api.post(`/api/borrow-tickets/${id}/return`, payload)
+  },
+
+  approveBorrowTicket(id, payload = {}) {
+    return api.post(`/api/borrow-tickets/${id}/approve`, payload)
+  },
+
+  rejectBorrowTicket(id, payload = {}) {
+    return api.post(`/api/borrow-tickets/${id}/reject`, payload)
+  },
+
+  cancelBorrowTicket(id, payload = {}) {
+    return api.post(`/api/borrow-tickets/${id}/cancel`, payload)
+  },
+
+  // =========================
+  // BORROW RECORDS
+  // =========================
+  borrowRecords(params) {
+    return api.get('/api/borrow-records', { params })
+  },
+
+  borrowRecord(id) {
+    return api.get(`/api/borrow-records/${id}`)
+  },
+
+  createBorrowRecord(payload) {
+    return api.post('/api/borrow-records', payload)
   },
 
   returnBorrowRecord(id, payload) {
     return api.post(`/api/borrow-records/${id}/return`, payload)
   },
 
+  renewBorrowRecord(id, payload = {}) {
+    return api.post(`/api/borrow-records/${id}/renew`, payload)
+  },
+
   // =========================
   // OVERDUE
   // =========================
-  overdue() {
-    return api.get('/api/overdue')
+  overdue(params) {
+    return api.get('/api/overdue', { params })
   },
 
   // =========================
@@ -325,12 +386,12 @@ export const circulationApi = {
   // =========================
   // REPORT / HISTORY
   // =========================
-  history() {
-    return api.get('/api/circulation/history')
+  history(params) {
+    return api.get('/api/circulation/history', { params })
   },
 
-  summary() {
-    return api.get('/api/circulation/reports/summary')
+  summary(params) {
+    return api.get('/api/circulation/reports/summary', { params })
   }
 }
 
@@ -354,8 +415,12 @@ export const identityApi = {
     return api.put(`/api/users/${id}`, payload)
   },
 
-  lockUser(id) {
-    return api.put(`/api/users/${id}/lock`)
+  deleteUser(id) {
+    return api.delete(`/api/users/${id}`)
+  },
+
+  lockUser(id, payload = {}) {
+    return api.put(`/api/users/${id}/lock`, payload)
   },
 
   unlockUser(id) {
@@ -379,6 +444,10 @@ export const identityApi = {
 
   updateReader(id, payload) {
     return api.put(`/api/readers/${id}`, payload)
+  },
+
+  deleteReader(id) {
+    return api.delete(`/api/readers/${id}`)
   },
 
   lockReader(id, payload = {}) {
@@ -419,16 +488,28 @@ export const identityApi = {
   // =========================
   // ROLES / PERMISSIONS
   // =========================
-  roles() {
-    return api.get('/api/roles')
+  roles(params) {
+    return api.get('/api/roles', { params })
+  },
+
+  role(id) {
+    return api.get(`/api/roles/${id}`)
   },
 
   createRole(payload) {
     return api.post('/api/roles', payload)
   },
 
-  permissions() {
-    return api.get('/api/permissions')
+  updateRole(id, payload) {
+    return api.put(`/api/roles/${id}`, payload)
+  },
+
+  deleteRole(id) {
+    return api.delete(`/api/roles/${id}`)
+  },
+
+  permissions(params) {
+    return api.get('/api/permissions', { params })
   },
 
   updateRolePermissions(id, payload) {
@@ -442,16 +523,16 @@ export const identityApi = {
     return api.get('/api/reports/overview', { params })
   },
 
-  booksReport() {
-    return api.get('/api/reports/books')
+  booksReport(params) {
+    return api.get('/api/reports/books', { params })
   },
 
-  readersReport() {
-    return api.get('/api/reports/readers')
+  readersReport(params) {
+    return api.get('/api/reports/readers', { params })
   },
 
-  circulationReport() {
-    return api.get('/api/reports/circulation')
+  circulationReport(params) {
+    return api.get('/api/reports/circulation', { params })
   },
 
   finesReport(params) {
@@ -462,16 +543,16 @@ export const identityApi = {
     return api.get('/api/reports/revenue', { params })
   },
 
-  statistics() {
-    return api.get('/api/statistics')
+  statistics(params) {
+    return api.get('/api/statistics', { params })
   },
 
   statisticsRevenue(params) {
     return api.get('/api/statistics/revenue', { params })
   },
 
-  syncReportEvents() {
-    return api.post('/api/reports/sync-events')
+  syncReportEvents(payload = {}) {
+    return api.post('/api/reports/sync-events', payload)
   },
 
   consumedEvents(params) {
@@ -514,12 +595,32 @@ export function unwrap(response) {
 }
 
 export function toArray(data) {
-  if (Array.isArray(data)) return data
-  if (Array.isArray(data?.value)) return data.value
-  if (Array.isArray(data?.data)) return data.data
-  if (Array.isArray(data?.items)) return data.items
-  if (Array.isArray(data?.$values)) return data.$values
+  const value = unwrap(data)
+
+  if (Array.isArray(value)) return value
+  if (Array.isArray(value?.value)) return value.value
+  if (Array.isArray(value?.data)) return value.data
+  if (Array.isArray(value?.items)) return value.items
+  if (Array.isArray(value?.result)) return value.result
+  if (Array.isArray(value?.records)) return value.records
+  if (Array.isArray(value?.$values)) return value.$values
+
   return []
+}
+
+export function toObject(data) {
+  const value = unwrap(data)
+
+  if (!value) return {}
+  if (value?.data && typeof value.data === 'object' && !Array.isArray(value.data)) {
+    return value.data
+  }
+
+  if (value?.result && typeof value.result === 'object' && !Array.isArray(value.result)) {
+    return value.result
+  }
+
+  return value
 }
 
 export function getErrorMessage(error, fallback = 'Có lỗi xảy ra. Vui lòng thử lại.') {
@@ -529,13 +630,12 @@ export function getErrorMessage(error, fallback = 'Có lỗi xảy ra. Vui lòng
 
   if (data?.errors) {
     const firstError = Object.values(data.errors)?.[0]
+
     if (Array.isArray(firstError) && firstError.length > 0) {
       return firstError[0]
     }
 
-    const allErrors = Object.values(data.errors)
-      .flat()
-      .filter(Boolean)
+    const allErrors = Object.values(data.errors).flat().filter(Boolean)
 
     if (allErrors.length > 0) {
       return allErrors.join('\n')

@@ -10,12 +10,18 @@
       </RouterLink>
 
       <div class="nav-scroll">
+        <!-- TỔNG QUAN -->
         <div class="nav-section-title">Tổng quan</div>
 
         <RouterLink to="/dashboard" class="nav-item">
           <v-icon icon="mdi-home-outline" />
           <span>Tổng quan hệ thống</span>
         </RouterLink>
+
+        <div class="nav-divider"></div>
+
+        <!-- QUẢN LÝ THƯ VIỆN -->
+        <div class="nav-section-title">Quản lý thư viện</div>
 
         <RouterLink to="/books" class="nav-item">
           <v-icon icon="mdi-book-open-outline" />
@@ -42,6 +48,11 @@
           <span>Nhà xuất bản</span>
         </RouterLink>
 
+        <div class="nav-divider"></div>
+
+        <!-- NGƯỜI DÙNG & PHÂN QUYỀN -->
+        <div class="nav-section-title">Người dùng & Phân quyền</div>
+
         <RouterLink to="/users" class="nav-item">
           <v-icon icon="mdi-account-group-outline" />
           <span>Người dùng</span>
@@ -57,6 +68,11 @@
           <span>Vai trò & Phân quyền</span>
         </RouterLink>
 
+        <div class="nav-divider"></div>
+
+        <!-- BÁO CÁO & NHẬT KÝ -->
+        <div class="nav-section-title">Báo cáo & Nhật ký</div>
+
         <RouterLink to="/reports" class="nav-item">
           <v-icon icon="mdi-chart-box-outline" />
           <span>Báo cáo thống kê</span>
@@ -67,6 +83,9 @@
           <span>Nhật ký hệ thống</span>
         </RouterLink>
 
+        <div class="nav-divider"></div>
+
+        <!-- HỆ THỐNG -->
         <div class="nav-section-title">Hệ thống</div>
 
         <RouterLink to="/settings" class="nav-item">
@@ -233,6 +252,7 @@ const searchKeyword = ref('')
 const searchFocused = ref(false)
 const notificationOpen = ref(false)
 const profileOpen = ref(false)
+
 const searchInputRef = ref(null)
 const searchBoxRef = ref(null)
 const notificationRef = ref(null)
@@ -240,16 +260,20 @@ const profileMenuRef = ref(null)
 
 const quickLinks = [
   { label: 'Tổng quan hệ thống', path: '/dashboard', icon: 'mdi-home-outline' },
+
   { label: 'Sách', path: '/books', icon: 'mdi-book-open-outline' },
   { label: 'Bản sao & Tồn kho', path: '/copies', icon: 'mdi-package-variant' },
   { label: 'Thể loại', path: '/categories', icon: 'mdi-shape-outline' },
   { label: 'Tác giả', path: '/authors', icon: 'mdi-account-edit-outline' },
   { label: 'Nhà xuất bản', path: '/publishers', icon: 'mdi-bank-outline' },
+
   { label: 'Người dùng', path: '/users', icon: 'mdi-account-group-outline' },
   { label: 'Độc giả', path: '/readers', icon: 'mdi-account-outline' },
   { label: 'Vai trò & Phân quyền', path: '/roles', icon: 'mdi-shield-key-outline' },
+
   { label: 'Báo cáo thống kê', path: '/reports', icon: 'mdi-chart-box-outline' },
   { label: 'Nhật ký hệ thống', path: '/logs', icon: 'mdi-text-box-search-outline' },
+
   { label: 'Cài đặt hệ thống', path: '/settings', icon: 'mdi-cog-outline' },
   { label: 'Hồ sơ cá nhân', path: '/profile', icon: 'mdi-account-circle-outline' }
 ]
@@ -368,6 +392,7 @@ onBeforeUnmount(() => {
 
 .app-shell.sidebar-collapsed .logo-text,
 .app-shell.sidebar-collapsed .nav-section-title,
+.app-shell.sidebar-collapsed .nav-divider,
 .app-shell.sidebar-collapsed .nav-item span {
   display: none;
 }
@@ -378,6 +403,12 @@ onBeforeUnmount(() => {
 
 .app-shell.sidebar-collapsed .nav-item {
   justify-content: center;
+  padding: 0;
+}
+
+.app-shell.sidebar-collapsed .nav-scroll {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .logo-text {
@@ -387,6 +418,93 @@ onBeforeUnmount(() => {
   font-weight: 950;
   letter-spacing: 0.5px;
 }
+
+/* ===============================
+   SIDEBAR GROUP LAYOUT
+================================ */
+
+.nav-scroll {
+  padding: 4px 16px 28px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.nav-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.nav-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.nav-section-title {
+  margin: 22px 10px 10px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 2.8px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.nav-section-title:first-child {
+  margin-top: 8px;
+}
+
+.nav-divider {
+  height: 1px;
+  margin: 16px 10px 8px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #e5edf8 18%,
+    #e5edf8 82%,
+    transparent
+  );
+}
+
+.nav-item {
+  min-height: 44px;
+  margin-bottom: 5px;
+  padding: 0 12px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: 0.16s ease;
+}
+
+.nav-item:hover {
+  background: #f3f7ff;
+  color: #2563eb;
+}
+
+.nav-item.router-link-active,
+.nav-item.router-link-exact-active {
+  background: #eef5ff;
+  color: #2563eb;
+}
+
+.nav-item .v-icon {
+  flex: 0 0 auto;
+  color: currentColor;
+}
+
+.nav-item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===============================
+   TOPBAR
+================================ */
 
 .topbar-right {
   display: flex;
@@ -560,6 +678,10 @@ onBeforeUnmount(() => {
   .profile-meta,
   .shortcut {
     display: none;
+  }
+
+  .search-panel {
+    width: 320px;
   }
 }
 </style>
