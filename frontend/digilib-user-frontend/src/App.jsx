@@ -805,6 +805,10 @@ function AppShell({
               <div><b>{reader?.fullName || user?.fullName || user?.FullName || 'Nguyễn Văn A'}</b><span>Độc giả</span></div>
               <ChevronDown size={18} />
             </div>
+            <button className="logout-btn" onClick={onLogout} title="Đăng xuất">
+              <LogOut size={19} />
+              <span>Đăng xuất</span>
+            </button>
           </div>
         </header>
         {children}
