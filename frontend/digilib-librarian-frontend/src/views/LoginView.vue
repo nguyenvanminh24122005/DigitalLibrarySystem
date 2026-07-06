@@ -88,8 +88,12 @@ const rememberMe = ref(false)
 const showPassword = ref(false)
 const form = reactive({ email: '', password: '' })
 
-const adminUrl = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5173'
-const userUrl = import.meta.env.VITE_USER_URL || 'http://localhost:5175'
+function getPublicUrl(port) {
+  return `${window.location.protocol}//${window.location.hostname}:${port}`
+}
+
+const adminUrl = import.meta.env.VITE_ADMIN_URL || import.meta.env.VITE_ADMIN_PORTAL_URL || getPublicUrl(5173)
+const userUrl = import.meta.env.VITE_USER_URL || import.meta.env.VITE_READER_PORTAL_URL || getPublicUrl(5175)
 
 onMounted(() => {
   const remembered = localStorage.getItem('digilib_librarian_remember_email')

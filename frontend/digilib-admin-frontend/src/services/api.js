@@ -1,7 +1,11 @@
 import axios from 'axios'
 
+function getPublicUrl(port) {
+  return `${window.location.protocol}//${window.location.hostname}:${port}`
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || getPublicUrl(8080),
   timeout: 20000
 })
 

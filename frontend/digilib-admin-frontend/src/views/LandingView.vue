@@ -246,7 +246,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
+function getPublicUrl(port) {
+  return `${window.location.protocol}//${window.location.hostname}:${port}`
+}
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || getPublicUrl(8080)).replace(/\/$/, '')
 
 const loading = ref(false)
 const errorMessage = ref('')

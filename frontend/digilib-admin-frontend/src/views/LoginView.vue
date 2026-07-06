@@ -352,10 +352,14 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-const ADMIN_PORTAL_URL = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5173'
-const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || 'http://localhost:5174'
-const READER_PORTAL_URL = import.meta.env.VITE_READER_PORTAL_URL || 'http://localhost:5175'
+function getPublicUrl(port) {
+  return `${window.location.protocol}//${window.location.hostname}:${port}`
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || getPublicUrl(8080)
+const ADMIN_PORTAL_URL = import.meta.env.VITE_ADMIN_PORTAL_URL || getPublicUrl(5173)
+const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || getPublicUrl(5174)
+const READER_PORTAL_URL = import.meta.env.VITE_READER_PORTAL_URL || getPublicUrl(5175)
 const GOOGLE_AUTH_URL = import.meta.env.VITE_GOOGLE_AUTH_URL || ''
 
 const TOKEN_KEYS = [

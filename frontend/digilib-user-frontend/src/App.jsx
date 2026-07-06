@@ -40,9 +40,13 @@ import {
   X,
 } from 'lucide-react'
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
-const ADMIN_PORTAL_URL = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5173'
-const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || 'http://localhost:5174'
+function getPublicUrl(port) {
+  return `${window.location.protocol}//${window.location.hostname}:${port}`
+}
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || getPublicUrl(8080)).replace(/\/$/, '')
+const ADMIN_PORTAL_URL = import.meta.env.VITE_ADMIN_PORTAL_URL || getPublicUrl(5173)
+const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || getPublicUrl(5174)
 const TOKEN_KEYS = [
   'digilib_token',
   'reader_token',
