@@ -10,6 +10,7 @@
       <RouterLink class="nav-link" to="/dashboard"><i class="mdi mdi-home-outline"></i>Tổng quan</RouterLink>
 
       <div class="nav-title">Nghiệp vụ</div>
+      <RouterLink class="nav-link" to="/borrow-requests"><i class="mdi mdi-clipboard-clock-outline"></i>Yêu cầu mượn</RouterLink>
       <RouterLink class="nav-link" to="/borrow"><i class="mdi mdi-book-plus-outline"></i>Mượn sách</RouterLink>
       <RouterLink class="nav-link" to="/return"><i class="mdi mdi-book-check-outline"></i>Trả sách</RouterLink>
       <RouterLink class="nav-link" to="/renew"><i class="mdi mdi-calendar-refresh-outline"></i>Gia hạn sách</RouterLink>

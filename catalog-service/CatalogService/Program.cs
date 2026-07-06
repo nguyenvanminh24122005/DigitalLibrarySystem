@@ -1,4 +1,5 @@
 using CatalogService.Data;
+using CatalogService.Models;
 using CatalogService.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -94,6 +95,52 @@ BEGIN
     ALTER TABLE [BookCopies] ADD [Note] NVARCHAR(MAX) NOT NULL CONSTRAINT [DF_BookCopies_Note] DEFAULT N'';
 END;
 ");
+
+    var defaultCategories = new[]
+    {
+        "Công nghệ thông tin",
+        "Lập trình",
+        "Khoa học dữ liệu",
+        "Trí tuệ nhân tạo",
+        "Mạng máy tính",
+        "An toàn thông tin",
+        "Cơ sở dữ liệu",
+        "Kỹ thuật phần mềm",
+        "Kinh tế",
+        "Quản trị kinh doanh",
+        "Tài chính - Ngân hàng",
+        "Kế toán",
+        "Marketing",
+        "Luật",
+        "Y học",
+        "Dược học",
+        "Giáo dục",
+        "Tâm lý học",
+        "Văn học Việt Nam",
+        "Văn học nước ngoài",
+        "Lịch sử",
+        "Địa lý",
+        "Ngoại ngữ",
+        "Kỹ năng sống",
+        "Thiếu nhi"
+    };
+
+    foreach (var name in defaultCategories)
+    {
+        if (!db.Categories.Any(x => x.Name == name))
+        {
+            db.Categories.Add(new Category
+            {
+                Name = name,
+                Description = $"Danh mục {name}",
+                Status = "Hoạt động",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+    }
+
+    db.SaveChanges();
 }
 catch (Exception ex)
 {
@@ -104,6 +151,7 @@ catch (Exception ex)
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("AllowAll");
+app.UseStaticFiles();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();

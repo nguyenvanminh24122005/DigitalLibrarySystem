@@ -238,6 +238,8 @@ export const circulationApi = {
   tickets: (params) => api.get('/api/borrow-records', { params }),
   record: (id) => api.get(`/api/borrow-records/${id}`),
   createRecord: (payload) => api.post('/api/borrow-records', payload),
+  approveRecord: (id) => api.post(`/api/borrow-records/${id}/approve`, {}),
+  rejectRecord: (id, payload = {}) => api.post(`/api/borrow-records/${id}/reject`, payload),
   returnRecord: (id, payload = {}) => api.post(`/api/borrow-records/${id}/return`, payload),
   renewRecord: (id, payload = {}) => api.post(`/api/borrow-records/${id}/renew`, payload),
   overdue: () => api.get('/api/borrow-records/overdue'),

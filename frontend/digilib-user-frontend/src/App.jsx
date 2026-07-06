@@ -72,6 +72,14 @@ const USER_KEY = 'digilib_user'
 const READER_USER_KEY = 'digilib_reader_user'
 const SETTINGS_KEY = 'digilib_reader_settings'
 
+function resolveMediaUrl(value) {
+  const url = cleanText(value, '')
+  if (!url) return ''
+  if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url
+  if (url.startsWith('/')) return `${API_BASE}${url}`
+  return `${API_BASE}/${url.replace(/^\/+/, '')}`
+}
+
 const PAGE = {
   HOME: 'home',
   FEATURED: 'featured',
@@ -208,7 +216,8 @@ function statusText(value) {
   if (raw === '3' || lower === 'inactive') return 'Ngưng hoạt động'
   if (lower === 'borrowed') return 'Đang mượn'
   if (lower === 'returned') return 'Đã trả'
-  if (lower === 'pendingapproval') return 'Chờ duyệt'
+  if (lower === 'pending' || lower === 'pendingapproval') return 'Chờ duyệt'
+  if (lower === 'rejected') return 'Từ chối'
   if (lower === 'overduereturned') return 'Quá hạn'
   return raw || 'Đang hoạt động'
 }
@@ -338,7 +347,7 @@ function normalizeBook(item = {}) {
     isbn: cleanText(firstValue(item, ['isbn', 'ISBN', 'Isbn'], ''), ''),
     publishedYear: firstValue(item, ['publishedYear', 'PublishedYear', 'publishYear', 'year', 'Year'], ''),
     description: cleanText(firstValue(item, ['description', 'Description', 'summary', 'Summary'], ''), ''),
-    coverImage: cleanText(firstValue(item, ['coverImage', 'CoverImage', 'coverUrl', 'CoverUrl', 'imageUrl', 'ImageUrl'], ''), ''),
+    coverImage: resolveMediaUrl(firstValue(item, ['coverImage', 'CoverImage', 'coverUrl', 'CoverUrl', 'imageUrl', 'ImageUrl'], '')),
     copies,
     totalCopies: copies.length || Number(firstValue(item, ['totalCopies', 'TotalCopies'], 0)),
     availableCopies: availableCopies || Number(firstValue(item, ['availableCopies', 'AvailableCopies', 'available', 'Available'], 0)),
@@ -791,11 +800,10 @@ function AppShell({
                 </div>
               )}
             </div>
-            <div className="user-menu">
+            <div className="user-menu" role="button" tabIndex={0} onClick={() => setPage(PAGE.PROFILE)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setPage(PAGE.PROFILE) }}>
               <div className="user-avatar">{cleanText(reader?.fullName || user?.fullName || user?.FullName, 'N').slice(0, 1).toUpperCase()}</div>
               <div><b>{reader?.fullName || user?.fullName || user?.FullName || 'Nguyễn Văn A'}</b><span>Độc giả</span></div>
               <ChevronDown size={18} />
-              <button className="logout-overlay" onClick={onLogout} title="Đăng xuất" />
             </div>
           </div>
         </header>
@@ -1275,6 +1283,7 @@ export default function App() {
     const nextReaderNumber = getReaderNumber(nextReader, nextCard)
     const cardNumber = nextCard?.cardNumber || nextReader?.cardNumber || nextReader?.readerCode
 
+    let recordItems = []
     const [recordRes, fineRes, notiRes, catCurrentRes, catHistoryRes] = await Promise.allSettled([
       api.records(cardNumber ? { cardNumber } : { readerId: nextReaderNumber }),
       api.fines(cardNumber ? { cardNumber } : { readerId: nextReaderNumber }),
@@ -1286,10 +1295,25 @@ export default function App() {
     if (recordRes.status === 'fulfilled') {
       let items = toArray(recordRes.value).map(normalizeRecord)
       if (!cardNumber && nextReader?.fullName) items = items.filter((r) => matchRecordForReader(r, nextReader, nextCard))
+      recordItems = items
       setRecords(items)
     }
     if (fineRes.status === 'fulfilled') setFines(toArray(fineRes.value).map(normalizeFine))
-    if (notiRes.status === 'fulfilled') setNotifications(toArray(notiRes.value).map(normalizeNotification))
+    if (notiRes.status === 'fulfilled') {
+      const apiNotifications = toArray(notiRes.value).map(normalizeNotification)
+      const recordNotifications = recordItems.slice(0, 8).map((record) => ({
+        id: `borrow-record-${record.id}-${record.status}`,
+        type: 'borrow',
+        title: String(record.status || '').toLowerCase() === 'pending' ? 'Yêu cầu mượn đang chờ duyệt' : 'Mượn sách thành công',
+        message: String(record.status || '').toLowerCase() === 'pending'
+          ? `Yêu cầu mượn "${record.bookTitle}" đã được gửi tới thủ thư.`
+          : `Phiếu mượn "${record.bookTitle}" đã được thủ thư duyệt.`,
+        createdAt: record.borrowDate,
+        isRead: true,
+        relatedBookId: record.bookId,
+      }))
+      setNotifications([...recordNotifications, ...apiNotifications])
+    }
     const catalogItems = []
     if (catCurrentRes.status === 'fulfilled') catalogItems.push(...toArray(catCurrentRes.value).map(normalizeRecord))
     if (catHistoryRes.status === 'fulfilled') catalogItems.push(...toArray(catHistoryRes.value).map(normalizeRecord))
@@ -1349,7 +1373,7 @@ export default function App() {
     }
     setLoading(true)
     try {
-      const result = await api.searchBooks({ keyword: q, title: q, author: q, category: q, isbn: q })
+      const result = await api.searchBooks({ keyword: q })
       const list = toArray(result).map(normalizeBook)
       setSearchResults(list)
       if (!list.length) addToast('Không tìm thấy sách', `Không có kết quả phù hợp với “${q}”.`, 'warning')
@@ -1365,7 +1389,9 @@ export default function App() {
   async function handleCategory(name) {
     if (!name) return
     setSearchText(name)
-    await handleSearch(name)
+    setSearchQuery(name)
+    setSearchResults(books.filter((book) => removeVietnamese(book.category) === removeVietnamese(name)))
+    setPage(PAGE.SEARCH)
   }
 
   async function openBookDetail(book) {
@@ -1418,9 +1444,10 @@ export default function App() {
         bookId: Number(book.id),
         bookTitle: book.title,
         borrowDate: new Date().toISOString(),
+        autoApprove: false,
       })
 
-      addToast('Mượn sách thành công', `Sách “${book.title}” đã được ghi nhận trong Circulation Service.`)
+      addToast('Đã gửi yêu cầu mượn', `Yêu cầu mượn “${book.title}” đang chờ thủ thư duyệt.`, 'warning')
       setSelectedBook(null)
       await Promise.all([loadCatalog(), loadReaderActivity()])
     } catch (err) {

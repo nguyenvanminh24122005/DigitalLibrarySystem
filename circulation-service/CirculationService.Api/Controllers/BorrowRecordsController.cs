@@ -88,6 +88,20 @@ public class BorrowRecordsController(CirculationDbContext db, BorrowRecordServic
         return Ok(record);
     }
 
+    [HttpPost("{id:int}/approve")]
+    public async Task<ActionResult<BorrowRecord>> Approve(int id, CancellationToken cancellationToken)
+    {
+        var record = await service.ApproveAsync(id, cancellationToken);
+        return Ok(record);
+    }
+
+    [HttpPost("{id:int}/reject")]
+    public async Task<ActionResult<BorrowRecord>> Reject(int id, BorrowRecordRejectRequest request, CancellationToken cancellationToken)
+    {
+        var record = await service.RejectAsync(id, request, cancellationToken);
+        return Ok(record);
+    }
+
 
     [HttpGet("/api/circulation/history")]
     public async Task<ActionResult<IEnumerable<BorrowRecordResponse>>> History(CancellationToken cancellationToken)

@@ -23,6 +23,13 @@ public class BorrowRecordCreateRequest
     public string BookTitle { get; set; } = string.Empty;
 
     public DateTime? BorrowDate { get; set; }
+
+    public bool AutoApprove { get; set; } = true;
+}
+
+public class BorrowRecordRejectRequest
+{
+    public string? Reason { get; set; }
 }
 
 public class BorrowRecordReturnRequest

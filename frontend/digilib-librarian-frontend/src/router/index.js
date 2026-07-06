@@ -3,6 +3,7 @@ import LoginView from '../views/LoginView.vue'
 import LibrarianLayout from '../layouts/LibrarianLayout.vue'
 import DashboardView from '../views/DashboardView.vue'
 import BorrowView from '../views/BorrowView.vue'
+import BorrowRequestsView from '../views/BorrowRequestsView.vue'
 import ReturnView from '../views/ReturnView.vue'
 import RenewView from '../views/RenewView.vue'
 import ReadersView from '../views/ReadersView.vue'
@@ -21,6 +22,7 @@ const routes = [
     children: [
       { path: '', redirect: '/dashboard' },
       { path: 'dashboard', name: 'dashboard', component: DashboardView },
+      { path: 'borrow-requests', name: 'borrow-requests', component: BorrowRequestsView },
       { path: 'borrow', name: 'borrow', component: BorrowView },
       { path: 'return', name: 'return', component: ReturnView },
       { path: 'renew', name: 'renew', component: RenewView },

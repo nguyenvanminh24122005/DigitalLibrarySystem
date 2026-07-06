@@ -60,6 +60,8 @@ AddRootAndAll("catalog-categories", "catalog-cluster", "/api/categories", 0);
 AddRootAndAll("catalog-authors", "catalog-cluster", "/api/authors", 0);
 AddRootAndAll("catalog-publishers", "catalog-cluster", "/api/publishers", 0);
 AddRootAndAll("catalog-documents", "catalog-cluster", "/api/digital-documents", 0);
+AddRootAndAll("catalog-uploads", "catalog-cluster", "/uploads", 0);
+AddRootAndAll("catalog-images", "catalog-cluster", "/images", 0);
 
 // Catalog user endpoints
 AddRoute("catalog-user-profile", "catalog-cluster", "/api/users/{userId}/profile", 0);

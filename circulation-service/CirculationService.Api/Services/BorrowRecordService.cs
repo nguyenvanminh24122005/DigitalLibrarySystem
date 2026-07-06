@@ -26,7 +26,7 @@ public class BorrowRecordService
         var normalizedCopyCode = request.CopyCode.Trim();
         var isCopyBorrowed = await db.BorrowRecords.AnyAsync(x =>
             x.CopyCode == normalizedCopyCode &&
-            x.Status == BorrowStatuses.Borrowed,
+            (x.Status == BorrowStatuses.Borrowed || x.Status == BorrowStatuses.Pending),
             cancellationToken);
 
         if (isCopyBorrowed)
@@ -34,7 +34,7 @@ public class BorrowRecordService
 
         var currentBorrowedCount = await db.BorrowRecords.CountAsync(x =>
             x.ReaderId == request.ReaderId &&
-            x.Status == BorrowStatuses.Borrowed,
+            (x.Status == BorrowStatuses.Borrowed || x.Status == BorrowStatuses.Pending),
             cancellationToken);
 
         if (currentBorrowedCount >= policy.MaxBooks)
@@ -48,7 +48,10 @@ public class BorrowRecordService
             throw new InvalidOperationException($"Độc giả còn công nợ {unpaidFine:N0}đ, cần thanh toán trước khi mượn tiếp.");
 
         // Kết nối nghiệp vụ sang Catalog: chuyển bản sao sang Borrowed trước khi tạo phiếu.
-        await UpdateCatalogCopyAsync(normalizedCopyCode, "borrow", cancellationToken);
+        if (request.AutoApprove)
+        {
+            await UpdateCatalogCopyAsync(normalizedCopyCode, "borrow", cancellationToken);
+        }
 
         var borrowDate = request.BorrowDate ?? DateTime.Now;
 
@@ -63,13 +66,59 @@ public class BorrowRecordService
             BorrowDate = borrowDate,
             DueDate = borrowDate.AddDays(policy.MaxDays),
             ReturnDate = null,
-            Status = BorrowStatuses.Borrowed,
+            Status = request.AutoApprove ? BorrowStatuses.Borrowed : BorrowStatuses.Pending,
             Fine = 0
         };
 
         db.BorrowRecords.Add(record);
         await db.SaveChangesAsync(cancellationToken);
 
+        return record;
+    }
+
+    public async Task<BorrowRecord> ApproveAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var record = await db.BorrowRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (record is null)
+            throw new KeyNotFoundException("Không tìm thấy yêu cầu mượn.");
+
+        if (record.Status == BorrowStatuses.Borrowed)
+            return record;
+
+        if (record.Status != BorrowStatuses.Pending)
+            throw new InvalidOperationException("Chỉ có thể duyệt yêu cầu đang chờ.");
+
+        var policy = await GetCurrentPolicyAsync(cancellationToken);
+        var isCopyBorrowed = await db.BorrowRecords.AnyAsync(x =>
+            x.Id != id &&
+            x.CopyCode == record.CopyCode &&
+            x.Status == BorrowStatuses.Borrowed,
+            cancellationToken);
+
+        if (isCopyBorrowed)
+            throw new InvalidOperationException("Bản sao này vừa được mượn bởi phiếu khác.");
+
+        await UpdateCatalogCopyAsync(record.CopyCode, "borrow", cancellationToken);
+
+        record.BorrowDate = DateTime.Now;
+        record.DueDate = record.BorrowDate.AddDays(policy.MaxDays);
+        record.Status = BorrowStatuses.Borrowed;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return record;
+    }
+
+    public async Task<BorrowRecord> RejectAsync(int id, BorrowRecordRejectRequest request, CancellationToken cancellationToken = default)
+    {
+        var record = await db.BorrowRecords.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (record is null)
+            throw new KeyNotFoundException("Không tìm thấy yêu cầu mượn.");
+
+        if (record.Status != BorrowStatuses.Pending)
+            throw new InvalidOperationException("Chỉ có thể từ chối yêu cầu đang chờ.");
+
+        record.Status = BorrowStatuses.Rejected;
+        await db.SaveChangesAsync(cancellationToken);
         return record;
     }
 
