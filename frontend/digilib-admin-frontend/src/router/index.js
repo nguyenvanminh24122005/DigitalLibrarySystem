@@ -123,7 +123,12 @@ const router = createRouter({
       path: '/:pathMatch(.*)*',
       redirect: '/'
     }
-  ]
+  ],
+  scrollBehavior() {
+    return {
+      top: 0
+    }
+  }
 })
 
 function normalizeRole(role) {
@@ -160,17 +165,81 @@ function isAdminPortalRole(role) {
   )
 }
 
+function readStoredUser() {
+  const keys = ['digilib_user', 'admin_user']
+
+  for (const key of keys) {
+    try {
+      const raw = localStorage.getItem(key)
+
+      if (!raw) continue
+
+      const user = JSON.parse(raw)
+
+      if (user && typeof user === 'object') {
+        return user
+      }
+    } catch {
+      localStorage.removeItem(key)
+    }
+  }
+
+  return null
+}
+
+function hasStoredToken() {
+  return Boolean(
+    localStorage.getItem('digilib_token') ||
+    localStorage.getItem('admin_token')
+  )
+}
+
+function clearWrongPortalSession(auth) {
+  try {
+    auth.logout()
+  } catch {
+    localStorage.removeItem('digilib_token')
+    localStorage.removeItem('digilib_user')
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_user')
+  }
+}
+
 router.beforeEach((to) => {
   const auth = useAuthStore()
 
   const isPublicPage = to.matched.some((record) => record.meta.public)
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
+  const storeUser = auth.user || null
+  const storedUser = readStoredUser()
+  const currentUser = storeUser || storedUser
+
+  const authenticated =
+    auth.isAuthenticated ||
+    hasStoredToken()
+
+  if (to.name === 'login') {
+    if (!authenticated || !currentUser) {
+      return true
+    }
+
+    if (isAdminPortalRole(getRole(currentUser))) {
+      return {
+        path: '/dashboard'
+      }
+    }
+
+    clearWrongPortalSession(auth)
+
+    return true
+  }
+
   if (isPublicPage) {
     return true
   }
 
-  if (requiresAuth && !auth.isAuthenticated) {
+  if (requiresAuth && !authenticated) {
     return {
       path: '/login',
       query: {
@@ -179,20 +248,14 @@ router.beforeEach((to) => {
     }
   }
 
-  if (requiresAuth && auth.isAuthenticated && auth.user) {
-    if (!isAdminPortalRole(getRole(auth.user))) {
-      auth.logout()
-      return '/login'
-    }
-  }
+  if (requiresAuth && authenticated && currentUser) {
+    if (!isAdminPortalRole(getRole(currentUser))) {
+      clearWrongPortalSession(auth)
 
-  if (to.name === 'login' && auth.isAuthenticated && auth.user) {
-    if (isAdminPortalRole(getRole(auth.user))) {
-      return '/dashboard'
+      return {
+        path: '/login'
+      }
     }
-
-    auth.logout()
-    return true
   }
 
   return true

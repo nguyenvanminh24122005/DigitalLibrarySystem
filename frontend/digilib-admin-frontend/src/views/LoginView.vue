@@ -1,386 +1,550 @@
 <template>
-  <main class="auth-page">
-    <section class="auth-shell">
-      <aside class="hero-panel">
+  <div class="auth-page">
+    <div class="auth-shell">
+      <section class="hero-panel">
         <div class="hero-badge">
-          <i class="mdi mdi-shield-account-outline"></i>
+          <span class="badge-dot"></span>
           Đăng nhập hệ thống
         </div>
 
-        <div>
+        <div class="hero-content">
           <h1>Thư viện số DIGILIB dùng chung một tài khoản</h1>
-
           <p>
-            Admin, Thủ thư và Độc giả đăng nhập tại cùng một màn hình.
-            Sau khi xác thực thành công, hệ thống tự động chuyển đến giao diện
-            phù hợp theo vai trò tài khoản.
+            Admin, Thủ thư và Độc giả sử dụng chung một màn hình đăng nhập.
+            Sau khi xác thực thành công, hệ thống sẽ tự động chuyển đến đúng giao diện theo vai trò tài khoản.
           </p>
+        </div>
 
-          <div class="hero-stats">
-            <div>
-              <strong>JWT</strong>
-              <span>Xác thực</span>
-            </div>
+        <div class="hero-features">
+          <div class="feature-card">
+            <strong>JWT</strong>
+            <span>Xác thực</span>
+          </div>
 
-            <div>
-              <strong>Role</strong>
-              <span>Phân quyền</span>
-            </div>
+          <div class="feature-card">
+            <strong>Role</strong>
+            <span>Phân quyền</span>
+          </div>
 
-            <div>
-              <strong>API</strong>
-              <span>Dữ liệu thật</span>
-            </div>
+          <div class="feature-card">
+            <strong>API</strong>
+            <span>Dữ liệu thật</span>
           </div>
         </div>
-      </aside>
+      </section>
 
-      <section class="auth-card">
-        <div class="brand">
-          <div class="logo">
-            <i class="mdi mdi-book-open-page-variant-outline"></i>
-          </div>
+      <section class="form-panel">
+        <div class="panel-header">
+          <div class="brand">
+            <div class="brand-icon">
+              <span>📘</span>
+            </div>
 
-          <div>
-            <h2>DIGILIB <span>SYSTEM</span></h2>
-            <p>Đăng nhập chung hệ thống thư viện số</p>
+            <div>
+              <div class="brand-title">DIGILIB <span>SYSTEM</span></div>
+              <div class="brand-subtitle">Đăng nhập chung hệ thống thư viện số</div>
+            </div>
           </div>
         </div>
 
         <div class="tabs">
           <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'login' }"
             type="button"
-            :class="{ active: mode === 'login' }"
-            @click="switchMode('login')"
+            @click="switchTab('login')"
           >
             Đăng nhập
           </button>
 
           <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'register' }"
             type="button"
-            :class="{ active: mode === 'register' }"
-            @click="switchMode('register')"
+            @click="switchTab('register')"
           >
             Đăng ký độc giả
           </button>
         </div>
 
-        <form
-          v-if="mode === 'login'"
-          class="auth-form"
-          @submit.prevent="handleLogin"
-        >
-          <div class="form-title">
-            <h3>Đăng nhập hệ thống</h3>
-            <p>
-              Dùng chung cho Admin, Thủ thư và Độc giả. Hệ thống sẽ tự chuyển
-              đến trang phù hợp sau khi đăng nhập.
-            </p>
+        <div v-if="activeTab === 'login'" class="tab-content">
+          <h2>Đăng nhập hệ thống</h2>
+
+          <p class="intro-text">
+            Dùng chung cho Admin, Thủ thư và Độc giả. Sau khi đăng nhập thành công,
+            hệ thống tự chuyển đến đúng giao diện.
+          </p>
+
+          <div v-if="loginError" class="alert alert-error">
+            {{ loginError }}
           </div>
 
-          <label class="field">
-            <span>Email hoặc tài khoản</span>
+          <div v-if="loginSuccess" class="alert alert-success">
+            {{ loginSuccess }}
+          </div>
 
-            <div class="input-wrap">
-              <i class="mdi mdi-account-outline"></i>
+          <form class="auth-form" @submit.prevent="submitLogin">
+            <div class="field">
+              <label>Email hoặc tài khoản</label>
 
-              <input
-                v-model.trim="loginForm.email"
-                type="text"
-                placeholder="you@digilib.edu.vn"
-                autocomplete="username"
-                required
-              />
+              <div class="input-wrap">
+                <span class="input-icon">👤</span>
+
+                <input
+                  v-model.trim="loginForm.identifier"
+                  type="text"
+                  placeholder="Nhập email hoặc tài khoản"
+                  autocomplete="username"
+                />
+              </div>
+
+              <small v-if="loginFieldErrors.identifier" class="field-error">
+                {{ loginFieldErrors.identifier }}
+              </small>
             </div>
-          </label>
 
-          <label class="field">
-            <span>Mật khẩu</span>
+            <div class="field">
+              <label>Mật khẩu</label>
 
-            <div class="input-wrap">
-              <i class="mdi mdi-lock-outline"></i>
+              <div class="input-wrap">
+                <span class="input-icon">🔒</span>
 
-              <input
-                v-model="loginForm.password"
-                :type="showLoginPassword ? 'text' : 'password'"
-                placeholder="Nhập mật khẩu"
-                autocomplete="current-password"
-                required
-              />
+                <input
+                  v-model="loginForm.password"
+                  :type="showLoginPassword ? 'text' : 'password'"
+                  placeholder="Nhập mật khẩu"
+                  autocomplete="current-password"
+                />
 
-              <button
-                type="button"
-                class="icon-btn"
-                @click="showLoginPassword = !showLoginPassword"
-              >
-                <i
-                  :class="
-                    showLoginPassword
-                      ? 'mdi mdi-eye-off-outline'
-                      : 'mdi mdi-eye-outline'
-                  "
-                ></i>
-              </button>
+                <button
+                  type="button"
+                  class="toggle-password"
+                  @click="showLoginPassword = !showLoginPassword"
+                >
+                  {{ showLoginPassword ? 'Ẩn' : 'Hiện' }}
+                </button>
+              </div>
+
+              <small v-if="loginFieldErrors.password" class="field-error">
+                {{ loginFieldErrors.password }}
+              </small>
             </div>
-          </label>
 
-          <div class="form-row">
-            <label class="check">
-              <input v-model="rememberMe" type="checkbox" />
-              <span>Ghi nhớ tài khoản</span>
-            </label>
+            <div class="row-between">
+              <label class="checkbox-wrap">
+                <input v-model="loginForm.rememberMe" type="checkbox" />
+                <span>Ghi nhớ tài khoản</span>
+              </label>
 
-            <button type="button" class="link-btn" @click="forgotPassword">
-              Quên mật khẩu?
+              <a href="javascript:void(0)" class="link-btn">Quên mật khẩu?</a>
+            </div>
+
+            <button class="primary-btn full-btn" type="submit" :disabled="loginLoading">
+              {{ loginLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+            </button>
+          </form>
+
+          <div class="divider">
+            <span>hoặc</span>
+          </div>
+
+          <div class="social-block">
+            <button class="social-btn google" type="button" @click="handleGoogleAuth">
+              <span>G</span>
+              Đăng nhập / đăng ký với Google
             </button>
           </div>
 
-          <div v-if="errorMessage" class="alert error">
-            <i class="mdi mdi-alert-circle-outline"></i>
-            <span>{{ errorMessage }}</span>
+          <div v-if="oauthMessage" class="oauth-note">
+            {{ oauthMessage }}
+          </div>
+        </div>
+
+        <div v-else class="tab-content">
+          <h2>Đăng ký độc giả</h2>
+
+          <p class="intro-text">
+            Tạo tài khoản độc giả mới. Sau khi đăng ký thành công, hệ thống sẽ tự
+            đưa bạn về tab đăng nhập để đăng nhập ngay.
+          </p>
+
+          <div v-if="registerError" class="alert alert-error">
+            {{ registerError }}
           </div>
 
-          <div v-if="successMessage" class="alert success">
-            <i class="mdi mdi-check-circle-outline"></i>
-            <span>{{ successMessage }}</span>
+          <div v-if="registerSuccess" class="alert alert-success">
+            {{ registerSuccess }}
           </div>
 
-          <button class="submit-btn" type="submit" :disabled="loading">
-            <span v-if="loading" class="spinner"></span>
-            <i v-else class="mdi mdi-login"></i>
-            {{ loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
-          </button>
-        </form>
-
-        <form
-          v-else
-          class="auth-form"
-          @submit.prevent="handleRegister"
-        >
-          <div class="form-title">
-            <h3>Đăng ký độc giả</h3>
-            <p>
-              Tạo tài khoản độc giả mới. Sau khi đăng ký thành công, hệ thống
-              tự tạo hồ sơ độc giả và thẻ thư viện mặc định.
-            </p>
-          </div>
-
-          <label class="field">
-            <span>Họ và tên</span>
-
-            <div class="input-wrap">
-              <i class="mdi mdi-account-outline"></i>
-
-              <input
-                v-model.trim="registerForm.fullName"
-                type="text"
-                placeholder="Nhập họ và tên"
-                required
-              />
-            </div>
-          </label>
-
-          <div class="two-cols">
-            <label class="field">
-              <span>Email</span>
+          <form class="auth-form" @submit.prevent="submitRegister">
+            <div class="field">
+              <label>Họ và tên</label>
 
               <div class="input-wrap">
-                <i class="mdi mdi-email-outline"></i>
+                <span class="input-icon">👤</span>
 
                 <input
-                  v-model.trim="registerForm.email"
-                  type="email"
-                  placeholder="you@email.com"
-                  autocomplete="email"
-                  required
+                  v-model.trim="registerForm.fullName"
+                  type="text"
+                  placeholder="Nhập họ và tên"
+                  autocomplete="name"
                 />
               </div>
-            </label>
 
-            <label class="field">
-              <span>Số điện thoại</span>
+              <small v-if="registerFieldErrors.fullName" class="field-error">
+                {{ registerFieldErrors.fullName }}
+              </small>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label>Email</label>
+
+                <div class="input-wrap">
+                  <span class="input-icon">✉</span>
+
+                  <input
+                    v-model.trim="registerForm.email"
+                    type="email"
+                    placeholder="you@email.com"
+                    autocomplete="email"
+                  />
+                </div>
+
+                <small v-if="registerFieldErrors.email" class="field-error">
+                  {{ registerFieldErrors.email }}
+                </small>
+              </div>
+
+              <div class="field">
+                <label>Số điện thoại</label>
+
+                <div class="input-wrap">
+                  <span class="input-icon">📞</span>
+
+                  <input
+                    v-model.trim="registerForm.phoneNumber"
+                    type="text"
+                    placeholder="09xxxxxxxx"
+                    autocomplete="tel"
+                  />
+                </div>
+
+                <small v-if="registerFieldErrors.phoneNumber" class="field-error">
+                  {{ registerFieldErrors.phoneNumber }}
+                </small>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Mật khẩu</label>
 
               <div class="input-wrap">
-                <i class="mdi mdi-phone-outline"></i>
+                <span class="input-icon">🔒</span>
 
                 <input
-                  v-model.trim="registerForm.phone"
-                  type="tel"
-                  placeholder="09xxxxxxxx"
+                  v-model="registerForm.password"
+                  :type="showRegisterPassword ? 'text' : 'password'"
+                  placeholder="Ví dụ: Aa123@"
+                  autocomplete="new-password"
                 />
+
+                <button
+                  type="button"
+                  class="toggle-password"
+                  @click="showRegisterPassword = !showRegisterPassword"
+                >
+                  {{ showRegisterPassword ? 'Ẩn' : 'Hiện' }}
+                </button>
               </div>
+
+              <small v-if="registerFieldErrors.password" class="field-error">
+                {{ registerFieldErrors.password }}
+              </small>
+
+              <div class="password-strength">
+                <div class="strength-bar">
+                  <div
+                    class="strength-fill"
+                    :class="passwordStrengthClass"
+                    :style="{ width: passwordStrengthPercent + '%' }"
+                  ></div>
+                </div>
+
+                <div class="strength-label">
+                  Độ mạnh: <b>{{ passwordStrengthText }}</b>
+                </div>
+              </div>
+
+              <ul class="password-checklist">
+                <li :class="{ ok: passwordChecks.minLength }">Tối thiểu 6 ký tự</li>
+                <li :class="{ ok: passwordChecks.hasUppercase }">Có ít nhất 1 chữ hoa</li>
+                <li :class="{ ok: passwordChecks.hasNumber }">Có ít nhất 1 chữ số</li>
+                <li :class="{ ok: passwordChecks.hasSpecial }">Có ít nhất 1 ký tự đặc biệt</li>
+              </ul>
+            </div>
+
+            <div class="field">
+              <label>Xác nhận mật khẩu</label>
+
+              <div class="input-wrap">
+                <span class="input-icon">🔐</span>
+
+                <input
+                  v-model="registerForm.confirmPassword"
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  placeholder="Nhập lại mật khẩu"
+                  autocomplete="new-password"
+                />
+
+                <button
+                  type="button"
+                  class="toggle-password"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                >
+                  {{ showConfirmPassword ? 'Ẩn' : 'Hiện' }}
+                </button>
+              </div>
+
+              <small v-if="registerFieldErrors.confirmPassword" class="field-error">
+                {{ registerFieldErrors.confirmPassword }}
+              </small>
+            </div>
+
+            <label class="checkbox-wrap agree-box">
+              <input v-model="registerForm.accepted" type="checkbox" />
+              <span>Tôi xác nhận thông tin đăng ký là đúng.</span>
             </label>
+
+            <small v-if="registerFieldErrors.accepted" class="field-error">
+              {{ registerFieldErrors.accepted }}
+            </small>
+
+            <button class="success-btn full-btn" type="submit" :disabled="registerLoading">
+              {{ registerLoading ? 'Đang đăng ký...' : 'Đăng ký độc giả' }}
+            </button>
+          </form>
+
+          <div class="divider">
+            <span>hoặc</span>
           </div>
 
-          <label class="field">
-            <span>Mật khẩu</span>
-
-            <div class="input-wrap">
-              <i class="mdi mdi-lock-outline"></i>
-
-              <input
-                v-model="registerForm.password"
-                :type="showRegisterPassword ? 'text' : 'password'"
-                placeholder="Tối thiểu 6 ký tự"
-                autocomplete="new-password"
-                minlength="6"
-                required
-              />
-
-              <button
-                type="button"
-                class="icon-btn"
-                @click="showRegisterPassword = !showRegisterPassword"
-              >
-                <i
-                  :class="
-                    showRegisterPassword
-                      ? 'mdi mdi-eye-off-outline'
-                      : 'mdi mdi-eye-outline'
-                  "
-                ></i>
-              </button>
-            </div>
-
-            <div class="strength">
-              <span :style="{ width: passwordStrength.percent + '%' }"></span>
-            </div>
-
-            <small>{{ passwordStrength.text }}</small>
-          </label>
-
-          <label class="field">
-            <span>Xác nhận mật khẩu</span>
-
-            <div class="input-wrap">
-              <i class="mdi mdi-lock-check-outline"></i>
-
-              <input
-                v-model="registerForm.confirmPassword"
-                :type="showRegisterPassword ? 'text' : 'password'"
-                placeholder="Nhập lại mật khẩu"
-                autocomplete="new-password"
-                minlength="6"
-                required
-              />
-            </div>
-          </label>
-
-          <label class="check terms">
-            <input v-model="agreeTerms" type="checkbox" />
-            <span>Tôi xác nhận thông tin đăng ký là đúng.</span>
-          </label>
-
-          <div v-if="errorMessage" class="alert error">
-            <i class="mdi mdi-alert-circle-outline"></i>
-            <span>{{ errorMessage }}</span>
+          <div class="social-block">
+            <button class="social-btn google" type="button" @click="handleGoogleAuth">
+              <span>G</span>
+              Đăng ký với Google
+            </button>
           </div>
 
-          <div v-if="successMessage" class="alert success">
-            <i class="mdi mdi-check-circle-outline"></i>
-            <span>{{ successMessage }}</span>
+          <div v-if="oauthMessage" class="oauth-note">
+            {{ oauthMessage }}
           </div>
-
-          <button class="submit-btn register" type="submit" :disabled="loading">
-            <span v-if="loading" class="spinner"></span>
-            <i v-else class="mdi mdi-account-plus-outline"></i>
-            {{ loading ? 'Đang đăng ký...' : 'Đăng ký độc giả' }}
-          </button>
-        </form>
+        </div>
       </section>
-    </section>
-  </main>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
-import { authApi, getErrorMessage } from '../services/api'
 
 const route = useRoute()
 const router = useRouter()
-const auth = useAuthStore()
 
-const mode = ref(route.query.tab === 'register' || route.query.mode === 'register' ? 'register' : 'login')
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const ADMIN_PORTAL_URL = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5173'
+const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || 'http://localhost:5174'
+const READER_PORTAL_URL = import.meta.env.VITE_READER_PORTAL_URL || 'http://localhost:5175'
+const GOOGLE_AUTH_URL = import.meta.env.VITE_GOOGLE_AUTH_URL || ''
+
+const activeTab = ref(route.query.tab === 'register' ? 'register' : 'login')
+
+const loginLoading = ref(false)
+const registerLoading = ref(false)
+
+const loginError = ref('')
+const loginSuccess = ref('')
+const registerError = ref('')
+const registerSuccess = ref('')
+const oauthMessage = ref('')
+
 const showLoginPassword = ref(false)
 const showRegisterPassword = ref(false)
-const rememberMe = ref(false)
-const agreeTerms = ref(false)
-const loading = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
+const showConfirmPassword = ref(false)
 
 const loginForm = reactive({
-  email: '',
-  password: ''
+  identifier: '',
+  password: '',
+  rememberMe: true
 })
 
 const registerForm = reactive({
   fullName: '',
   email: '',
-  phone: '',
+  phoneNumber: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  accepted: false
 })
 
-onMounted(() => {
-  const remembered = localStorage.getItem('digilib_remember_email')
+const loginFieldErrors = reactive({
+  identifier: '',
+  password: ''
+})
 
-  if (remembered) {
-    loginForm.email = remembered
-    rememberMe.value = true
-  }
+const registerFieldErrors = reactive({
+  fullName: '',
+  email: '',
+  phoneNumber: '',
+  password: '',
+  confirmPassword: '',
+  accepted: ''
 })
 
 watch(
   () => route.query.tab,
   (value) => {
-    if (value === 'register') {
-      switchMode('register', false)
-    }
-
-    if (value === 'login') {
-      switchMode('login', false)
-    }
+    activeTab.value = value === 'register' ? 'register' : 'login'
   }
 )
 
-const passwordStrength = computed(() => {
-  const value = registerForm.password || ''
-  let score = 0
+function switchTab(tab) {
+  activeTab.value = tab
+  oauthMessage.value = ''
+  loginError.value = ''
+  loginSuccess.value = ''
+  registerError.value = ''
+  registerSuccess.value = ''
 
-  if (value.length >= 6) score += 1
-  if (/[A-Z]/.test(value)) score += 1
-  if (/\d/.test(value)) score += 1
-  if (/[^A-Za-z0-9]/.test(value)) score += 1
+  router.replace({
+    path: '/login',
+    query: tab === 'register' ? { tab: 'register' } : {}
+  })
+}
 
-  if (!value) {
-    return {
-      percent: 0,
-      text: 'Mật khẩu nên có chữ hoa, số và ký tự đặc biệt.'
-    }
-  }
+function clearLoginErrors() {
+  loginError.value = ''
+  loginSuccess.value = ''
+  loginFieldErrors.identifier = ''
+  loginFieldErrors.password = ''
+}
 
-  if (score <= 1) {
-    return {
-      percent: 30,
-      text: 'Mật khẩu yếu.'
-    }
-  }
+function clearRegisterErrors() {
+  registerError.value = ''
+  registerSuccess.value = ''
+  registerFieldErrors.fullName = ''
+  registerFieldErrors.email = ''
+  registerFieldErrors.phoneNumber = ''
+  registerFieldErrors.password = ''
+  registerFieldErrors.confirmPassword = ''
+  registerFieldErrors.accepted = ''
+}
 
-  if (score <= 3) {
-    return {
-      percent: 65,
-      text: 'Mật khẩu trung bình.'
-    }
-  }
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
 
-  return {
-    percent: 100,
-    text: 'Mật khẩu mạnh.'
-  }
+function isValidPhone(phone) {
+  return /^(0|\+84)\d{9,10}$/.test(String(phone || '').replace(/\s+/g, ''))
+}
+
+const passwordChecks = computed(() => ({
+  minLength: registerForm.password.length >= 6,
+  hasUppercase: /[A-Z]/.test(registerForm.password),
+  hasNumber: /\d/.test(registerForm.password),
+  hasSpecial: /[^A-Za-z0-9]/.test(registerForm.password)
+}))
+
+const passwordScore = computed(() => {
+  return Object.values(passwordChecks.value).filter(Boolean).length
 })
+
+const passwordStrengthPercent = computed(() => {
+  return passwordScore.value * 25
+})
+
+const passwordStrengthText = computed(() => {
+  if (passwordScore.value <= 1) return 'Yếu'
+  if (passwordScore.value === 2) return 'Trung bình'
+  if (passwordScore.value === 3) return 'Khá'
+  return 'Mạnh'
+})
+
+const passwordStrengthClass = computed(() => {
+  if (passwordScore.value <= 1) return 'weak'
+  if (passwordScore.value === 2) return 'medium'
+  if (passwordScore.value === 3) return 'good'
+  return 'strong'
+})
+
+function validateLogin() {
+  clearLoginErrors()
+
+  let ok = true
+
+  if (!loginForm.identifier) {
+    loginFieldErrors.identifier = 'Vui lòng nhập email hoặc tài khoản.'
+    ok = false
+  }
+
+  if (!loginForm.password) {
+    loginFieldErrors.password = 'Vui lòng nhập mật khẩu.'
+    ok = false
+  }
+
+  return ok
+}
+
+function validateRegister() {
+  clearRegisterErrors()
+
+  let ok = true
+
+  if (!registerForm.fullName) {
+    registerFieldErrors.fullName = 'Vui lòng nhập họ và tên.'
+    ok = false
+  }
+
+  if (!registerForm.email) {
+    registerFieldErrors.email = 'Vui lòng nhập email.'
+    ok = false
+  } else if (!isValidEmail(registerForm.email)) {
+    registerFieldErrors.email = 'Email không đúng định dạng.'
+    ok = false
+  }
+
+  if (!registerForm.phoneNumber) {
+    registerFieldErrors.phoneNumber = 'Vui lòng nhập số điện thoại.'
+    ok = false
+  } else if (!isValidPhone(registerForm.phoneNumber)) {
+    registerFieldErrors.phoneNumber = 'Số điện thoại không hợp lệ.'
+    ok = false
+  }
+
+  if (!registerForm.password) {
+    registerFieldErrors.password = 'Vui lòng nhập mật khẩu.'
+    ok = false
+  } else if (!Object.values(passwordChecks.value).every(Boolean)) {
+    registerFieldErrors.password = 'Mật khẩu chưa đủ mạnh.'
+    ok = false
+  }
+
+  if (!registerForm.confirmPassword) {
+    registerFieldErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu.'
+    ok = false
+  } else if (registerForm.confirmPassword !== registerForm.password) {
+    registerFieldErrors.confirmPassword = 'Mật khẩu xác nhận không khớp.'
+    ok = false
+  }
+
+  if (!registerForm.accepted) {
+    registerFieldErrors.accepted = 'Bạn cần xác nhận thông tin trước khi đăng ký.'
+    ok = false
+  }
+
+  return ok
+}
 
 function normalizeRole(role) {
   return String(role || '')
@@ -391,556 +555,590 @@ function normalizeRole(role) {
     .trim()
 }
 
-function getRole(user) {
-  return (
-    user?.role ||
-    user?.roleName ||
-    user?.Role ||
-    user?.RoleName ||
-    user?.userRole ||
-    user?.accountType ||
-    user?.type ||
-    ''
-  )
-}
+function base64UrlEncode(value) {
+  const json = typeof value === 'string' ? value : JSON.stringify(value)
+  const bytes = new TextEncoder().encode(json)
 
-function isAdminRole(user) {
-  const role = normalizeRole(getRole(user))
+  let binary = ''
 
-  return (
-    role === 'admin' ||
-    role.includes('admin') ||
-    role.includes('quan tri') ||
-    role.includes('quan ly') ||
-    role.includes('administrator') ||
-    role.includes('bao cao')
-  )
-}
-
-function isLibrarianRole(user) {
-  const role = normalizeRole(getRole(user))
-
-  return (
-    role === 'librarian' ||
-    role.includes('librarian') ||
-    role.includes('thu thu') ||
-    role.includes('staff')
-  )
-}
-
-function isReaderRole(user) {
-  const role = normalizeRole(getRole(user))
-
-  return (
-    role === 'reader' ||
-    role === 'user' ||
-    role.includes('reader') ||
-    role.includes('doc gia') ||
-    role.includes('sinh vien') ||
-    role.includes('student') ||
-    role.includes('patron')
-  )
-}
-
-function portalUrl(port, path = '/') {
-  const url = new URL(window.location.href)
-  url.port = String(port)
-  url.pathname = path
-  url.search = ''
-  url.hash = ''
-
-  return url.toString().replace(/\/$/, '')
-}
-
-function getRedirectUrl() {
-  const params = new URLSearchParams(window.location.search)
-
-  return params.get('redirect') || params.get('returnUrl') || ''
-}
-
-function getTokenFromStorage() {
-  return (
-    auth.token ||
-    localStorage.getItem('digilib_token') ||
-    localStorage.getItem('token') ||
-    localStorage.getItem('accessToken') ||
-    ''
-  )
-}
-
-function saveSharedSession(user) {
-  const token = getTokenFromStorage()
-
-  if (token) {
-    localStorage.setItem('digilib_token', token)
-    localStorage.setItem('token', token)
-  }
-
-  if (user) {
-    localStorage.setItem('digilib_user', JSON.stringify(user))
-  }
-}
-
-function encodeSession(user) {
-  const payload = {
-    token: getTokenFromStorage(),
-    user: user || auth.user || null
-  }
-
-  return btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
-}
-
-function sendSessionToUrl(rawUrl, user) {
-  try {
-    const url = new URL(rawUrl)
-    url.searchParams.set('session', encodeSession(user))
-    window.location.href = url.toString()
-  } catch {
-    routeByRole(user)
-  }
-}
-
-function sendSessionToPortal(port, path, user) {
-  const target = `${portalUrl(port, path)}?session=${encodeURIComponent(
-    encodeSession(user)
-  )}`
-
-  window.location.href = target
-}
-
-function saveRemember() {
-  if (rememberMe.value) {
-    localStorage.setItem('digilib_remember_email', loginForm.email)
-  } else {
-    localStorage.removeItem('digilib_remember_email')
-  }
-}
-
-function switchMode(nextMode, updateQuery = true) {
-  mode.value = nextMode
-  showLoginPassword.value = false
-  showRegisterPassword.value = false
-  errorMessage.value = ''
-  successMessage.value = ''
-
-  if (!updateQuery) return
-
-  router.replace({
-    path: '/login',
-    query: {
-      ...route.query,
-      tab: nextMode === 'register' ? 'register' : undefined
-    }
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte)
   })
+
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
 }
 
-function forgotPassword() {
-  errorMessage.value = ''
-  successMessage.value =
-    'Chức năng quên mật khẩu có thể tích hợp email SMTP. Hiện hãy liên hệ Admin để đặt lại mật khẩu.'
-}
+function base64UrlDecode(value) {
+  const base64 = String(value)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
 
-function validateEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
 
-function validatePhone(phone) {
-  if (!phone) return true
-
-  return /^(0|\+84)[0-9]{9,10}$/.test(phone.replace(/\s/g, ''))
-}
-
-function redirectMatchesRole(redirectUrl, user) {
-  if (!redirectUrl) return false
-
-  try {
-    const url = new URL(redirectUrl)
-
-    if (isAdminRole(user)) {
-      return url.port === '5173' || url.pathname.startsWith('/dashboard')
-    }
-
-    if (isLibrarianRole(user)) {
-      return url.port === '5174'
-    }
-
-    if (isReaderRole(user)) {
-      return url.port === '5175'
-    }
-
-    return false
-  } catch {
-    return false
-  }
-}
-
-function routeByRole(user) {
-  if (isAdminRole(user)) {
-    router.push('/dashboard')
-    return
-  }
-
-  if (isLibrarianRole(user)) {
-    sendSessionToPortal(5174, '/dashboard', user)
-    return
-  }
-
-  if (isReaderRole(user)) {
-    sendSessionToPortal(5175, '/', user)
-    return
-  }
-
-  auth.logout()
-  localStorage.removeItem('digilib_token')
-  localStorage.removeItem('digilib_user')
-
-  throw new Error(
-    `Tài khoản role "${getRole(user) || 'không xác định'}" chưa được gán giao diện phù hợp.`
+  return decodeURIComponent(
+    atob(padded)
+      .split('')
+      .map((char) => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
+      .join('')
   )
 }
 
-function routeAfterLogin(user) {
-  saveSharedSession(user)
+function saveAuthSession(token, user) {
+  const safeUser = user || {}
 
-  const redirectUrl = getRedirectUrl()
+  localStorage.setItem('digilib_token', token || '')
+  localStorage.setItem('digilib_user', JSON.stringify(safeUser))
 
-  if (redirectMatchesRole(redirectUrl, user)) {
-    if (isAdminRole(user)) {
-      router.push('/dashboard')
-      return
+  localStorage.setItem('admin_token', token || '')
+  localStorage.setItem('admin_user', JSON.stringify(safeUser))
+
+  localStorage.setItem('librarian_token', token || '')
+  localStorage.setItem('librarian_user', JSON.stringify(safeUser))
+
+  localStorage.setItem('reader_token', token || '')
+  localStorage.setItem('reader_user', JSON.stringify(safeUser))
+
+  if (loginForm.rememberMe) {
+    localStorage.setItem('remember_identifier', loginForm.identifier || '')
+  } else {
+    localStorage.removeItem('remember_identifier')
+  }
+}
+
+function getRedirectUrlByRole(role, token = '', user = {}, expiresAt = null) {
+  const value = normalizeRole(role)
+
+  const session = base64UrlEncode({
+    token,
+    expiresAt,
+    user
+  })
+
+  if (
+    value.includes('admin') ||
+    value.includes('quan tri') ||
+    value.includes('quan ly') ||
+    value.includes('administrator') ||
+    value.includes('bao cao')
+  ) {
+    return `${ADMIN_PORTAL_URL}/dashboard`
+  }
+
+  if (
+    value.includes('thu thu') ||
+    value.includes('librarian')
+  ) {
+    return `${LIBRARIAN_PORTAL_URL}/dashboard?session=${encodeURIComponent(session)}`
+  }
+
+  return `${READER_PORTAL_URL}/?session=${encodeURIComponent(session)}`
+}
+
+async function parseApiResponse(response) {
+  const text = await response.text()
+
+  let data = null
+
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    data = text
+  }
+
+  if (!response.ok) {
+    const message =
+      data?.message ||
+      data?.error ||
+      data?.title ||
+      data?.detail ||
+      (typeof data === 'string' ? data : '') ||
+      'Có lỗi xảy ra từ máy chủ.'
+
+    const error = new Error(message)
+    error.status = response.status
+    error.payload = data
+    throw error
+  }
+
+  return data
+}
+
+async function apiPost(path, payload) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  })
+
+  return parseApiResponse(response)
+}
+
+async function submitLogin() {
+  if (!validateLogin()) return
+
+  loginLoading.value = true
+  clearLoginErrors()
+  oauthMessage.value = ''
+
+  try {
+    const payload = {
+      UsernameOrEmail: loginForm.identifier.trim(),
+      Password: loginForm.password
     }
 
-    sendSessionToUrl(redirectUrl, user)
-    return
-  }
+    const data = await apiPost('/api/auth/login', payload)
 
-  routeByRole(user)
-}
+    const token =
+      data?.token ||
+      data?.Token ||
+      data?.accessToken ||
+      data?.AccessToken ||
+      data?.data?.token ||
+      data?.data?.Token ||
+      data?.data?.accessToken ||
+      data?.data?.AccessToken
 
-async function handleLogin() {
-  try {
-    loading.value = true
-    errorMessage.value = ''
-    successMessage.value = ''
+    const user =
+      data?.user ||
+      data?.User ||
+      data?.data?.user ||
+      data?.data?.User ||
+      data?.userDto ||
+      data?.UserDto ||
+      data?.data
 
-    const user = await auth.login(loginForm.email, loginForm.password)
+    const expiresAt =
+      data?.expiresAt ||
+      data?.ExpiresAt ||
+      data?.data?.expiresAt ||
+      data?.data?.ExpiresAt ||
+      null
 
-    saveRemember()
-    routeAfterLogin(user)
+    if (!token) {
+      throw new Error('API đăng nhập chưa trả về token.')
+    }
+
+    if (!user) {
+      throw new Error('API đăng nhập chưa trả về thông tin người dùng.')
+    }
+
+    saveAuthSession(token, user)
+
+    loginSuccess.value = 'Đăng nhập thành công. Đang chuyển trang...'
+
+    const role =
+      user.role ||
+      user.roleName ||
+      user.Role ||
+      user.RoleName ||
+      user.userRole ||
+      user.UserRole ||
+      ''
+
+    const redirectUrl = getRedirectUrlByRole(role, token, user, expiresAt)
+
+    setTimeout(() => {
+      window.location.href = redirectUrl
+    }, 600)
   } catch (error) {
-    errorMessage.value = getErrorMessage(
-      error,
-      error?.message || 'Đăng nhập thất bại'
-    )
+    if (error.status === 401) {
+      loginError.value = 'Tài khoản hoặc mật khẩu không đúng.'
+    } else if (error.status === 403) {
+      loginError.value = 'Tài khoản đang bị khóa hoặc ngưng hoạt động.'
+    } else {
+      loginError.value = error.message || 'Đăng nhập thất bại.'
+    }
   } finally {
-    loading.value = false
+    loginLoading.value = false
   }
 }
 
-async function handleRegister() {
-  errorMessage.value = ''
-  successMessage.value = ''
+async function submitRegister() {
+  if (!validateRegister()) return
 
-  if (!registerForm.fullName.trim()) {
-    errorMessage.value = 'Vui lòng nhập họ và tên.'
-    return
-  }
-
-  if (!validateEmail(registerForm.email)) {
-    errorMessage.value = 'Email không hợp lệ.'
-    return
-  }
-
-  if (!validatePhone(registerForm.phone)) {
-    errorMessage.value = 'Số điện thoại không hợp lệ. Ví dụ đúng: 0912345678.'
-    return
-  }
-
-  if (registerForm.password.length < 6) {
-    errorMessage.value = 'Mật khẩu phải có ít nhất 6 ký tự.'
-    return
-  }
-
-  if (registerForm.password !== registerForm.confirmPassword) {
-    errorMessage.value = 'Mật khẩu xác nhận không khớp.'
-    return
-  }
-
-  if (!agreeTerms.value) {
-    errorMessage.value = 'Bạn cần xác nhận thông tin đăng ký trước khi tạo tài khoản.'
-    return
-  }
+  registerLoading.value = true
+  clearRegisterErrors()
+  oauthMessage.value = ''
 
   try {
-    loading.value = true
+    const email = registerForm.email.trim().toLowerCase()
 
-    await authApi.register({
-      fullName: registerForm.fullName,
-      email: registerForm.email,
-      username: registerForm.email,
-      phone: registerForm.phone,
-      phoneNumber: registerForm.phone,
-      password: registerForm.password,
-      role: 'Reader'
-    })
+    const payload = {
+      FullName: registerForm.fullName.trim(),
+      Email: email,
+      Username: email,
+      Phone: registerForm.phoneNumber.trim(),
+      Password: registerForm.password,
+      ConfirmPassword: registerForm.confirmPassword
+    }
 
-    loginForm.email = registerForm.email
+    await apiPost('/api/auth/register', payload)
+
+    registerSuccess.value = 'Đăng ký độc giả thành công. Vui lòng đăng nhập.'
+
+    loginForm.identifier = email
     loginForm.password = ''
 
-    Object.assign(registerForm, {
-      fullName: '',
-      email: '',
-      phone: '',
-      password: '',
-      confirmPassword: ''
-    })
+    registerForm.fullName = ''
+    registerForm.email = ''
+    registerForm.phoneNumber = ''
+    registerForm.password = ''
+    registerForm.confirmPassword = ''
+    registerForm.accepted = false
 
-    agreeTerms.value = false
-    mode.value = 'login'
-    successMessage.value =
-      'Đăng ký độc giả thành công. Bạn có thể đăng nhập bằng tài khoản vừa tạo.'
-
-    router.replace({
-      path: '/login',
-      query: {
-        tab: undefined
-      }
-    })
+    setTimeout(() => {
+      switchTab('login')
+    }, 900)
   } catch (error) {
-    errorMessage.value = getErrorMessage(error, 'Đăng ký thất bại')
+    if (error.status === 409) {
+      registerError.value = 'Email hoặc tài khoản đã tồn tại.'
+    } else if (error.status === 403) {
+      registerError.value = 'Hệ thống đang tạm khóa chức năng đăng ký độc giả mới.'
+    } else {
+      registerError.value = error.message || 'Đăng ký thất bại.'
+    }
   } finally {
-    loading.value = false
+    registerLoading.value = false
   }
 }
+
+function handleGoogleAuth() {
+  oauthMessage.value = ''
+
+  if (!GOOGLE_AUTH_URL) {
+    oauthMessage.value = 'Chức năng đăng ký / đăng nhập bằng Google chưa được cấu hình trong file .env.'
+    return
+  }
+
+  window.location.href = GOOGLE_AUTH_URL
+}
+
+function consumeOAuthSession() {
+  const oauth = route.query.oauth
+  const session = route.query.session
+  const message = route.query.message
+
+  if (oauth === 'error') {
+    oauthMessage.value = message || 'Đăng nhập Google thất bại.'
+    return
+  }
+
+  if (oauth !== 'success' || !session) return
+
+  try {
+    const decoded = JSON.parse(base64UrlDecode(session))
+
+    const token = decoded.token || decoded.Token
+    const user = decoded.user || decoded.User
+    const expiresAt = decoded.expiresAt || decoded.ExpiresAt || null
+
+    if (!token || !user) {
+      throw new Error('OAuth session không hợp lệ.')
+    }
+
+    saveAuthSession(token, user)
+
+    const role =
+      user.role ||
+      user.roleName ||
+      user.Role ||
+      user.RoleName ||
+      user.userRole ||
+      user.UserRole ||
+      ''
+
+    const redirectUrl = getRedirectUrlByRole(role, token, user, expiresAt)
+
+    window.location.href = redirectUrl
+  } catch (e) {
+    oauthMessage.value = e.message || 'Không đọc được phiên đăng nhập Google.'
+  }
+}
+
+const rememberedIdentifier = localStorage.getItem('remember_identifier')
+
+if (rememberedIdentifier) {
+  loginForm.identifier = rememberedIdentifier
+}
+
+onMounted(() => {
+  consumeOAuthSession()
+})
 </script>
 
 <style scoped>
 .auth-page {
   min-height: 100vh;
   padding: 32px;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.09), transparent 26%),
+    linear-gradient(135deg, #eef4ff 0%, #f8fbff 45%, #eef3ff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(circle at 88% 10%, rgba(37, 99, 235, 0.16), transparent 26%),
-    radial-gradient(circle at 4% 84%, rgba(37, 99, 235, 0.13), transparent 28%),
-    linear-gradient(135deg, #f8fbff, #eef5ff 55%, #f8fbff);
-  color: #0f172a;
+  box-sizing: border-box;
 }
 
 .auth-shell {
-  width: min(1180px, 100%);
+  width: 100%;
+  max-width: 1200px;
+  min-height: 720px;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 24px;
-}
-
-.hero-panel,
-.auth-card {
-  border: 1px solid rgba(226, 232, 240, 0.92);
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 32px;
-  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.12);
-  backdrop-filter: blur(18px);
+  grid-template-columns: 0.95fr 1fr;
+  gap: 26px;
+  align-items: stretch;
 }
 
 .hero-panel {
   position: relative;
   overflow: hidden;
-  padding: 44px;
+  border-radius: 28px;
+  padding: 36px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #10245f 0%, #2144b7 48%, #3263f1 100%);
+  box-shadow: 0 24px 50px rgba(37, 99, 235, 0.22);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 680px;
-  background: linear-gradient(145deg, #0f172a, #1d4ed8 48%, #2563eb);
 }
 
-.hero-panel::before {
-  content: '';
-  position: absolute;
-  right: -90px;
-  top: -90px;
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-}
-
+.hero-panel::before,
 .hero-panel::after {
   content: '';
   position: absolute;
-  left: -80px;
-  bottom: -110px;
-  width: 330px;
-  height: 330px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.11);
 }
 
-.hero-panel > * {
-  position: relative;
-  z-index: 1;
+.hero-panel::before {
+  width: 260px;
+  height: 260px;
+  top: -70px;
+  right: -70px;
+}
+
+.hero-panel::after {
+  width: 220px;
+  height: 220px;
+  left: -90px;
+  bottom: -90px;
 }
 
 .hero-badge {
-  width: max-content;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: #dbeafe;
-  font-weight: 900;
-  display: flex;
-  gap: 8px;
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
   align-items: center;
+  gap: 10px;
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 15px;
 }
 
-.hero-panel h1 {
-  margin: 42px 0 18px;
-  color: #fff;
-  font-size: 48px;
+.badge-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #dbeafe;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 470px;
+}
+
+.hero-content h1 {
+  margin: 0 0 18px;
+  font-size: 58px;
   line-height: 1.05;
-  letter-spacing: -1.5px;
+  font-weight: 900;
 }
 
-.hero-panel p {
+.hero-content p {
   margin: 0;
-  color: #dbeafe;
-  font-size: 17px;
+  font-size: 22px;
   line-height: 1.7;
-  max-width: 560px;
+  color: rgba(255, 255, 255, 0.92);
 }
 
-.hero-stats {
+.hero-features {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 44px;
+  gap: 14px;
 }
 
-.hero-stats div {
+.feature-card {
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.17);
   padding: 18px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border-radius: 20px;
 }
 
-.hero-stats strong {
+.feature-card strong {
   display: block;
-  font-size: 24px;
+  font-size: 32px;
+  margin-bottom: 8px;
 }
 
-.hero-stats span {
-  display: block;
-  margin-top: 5px;
-  color: #dbeafe;
-  font-weight: 700;
+.feature-card span {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.92);
 }
 
-.auth-card {
-  padding: 42px 46px;
+.form-panel {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 28px;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.07);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  margin-bottom: 18px;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 28px;
 }
 
-.logo {
-  width: 62px;
-  height: 62px;
-  border-radius: 20px;
+.brand-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
   background: #eff6ff;
   color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 34px;
+  font-size: 28px;
 }
 
-.brand h2 {
-  margin: 0;
-  font-size: 30px;
-  letter-spacing: 3px;
-  font-weight: 950;
+.brand-title {
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  color: #0f172a;
 }
 
-.brand h2 span {
+.brand-title span {
   color: #2563eb;
 }
 
-.brand p {
-  margin: 5px 0 0;
+.brand-subtitle {
+  margin-top: 6px;
   color: #64748b;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 5px;
-  border-radius: 16px;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 18px;
   background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 28px;
-}
-
-.tabs button {
-  height: 48px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  font-weight: 950;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.tabs button.active {
-  background: #fff;
-  color: #2563eb;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-}
-
-.form-title {
   margin-bottom: 22px;
 }
 
-.form-title h3 {
-  font-size: 30px;
-  margin: 0;
-  font-weight: 950;
-}
-
-.form-title p {
-  margin: 8px 0 0;
+.tab-btn {
+  height: 54px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  font-size: 18px;
+  font-weight: 800;
   color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.field {
-  display: block;
+.tab-btn.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.tab-content h2 {
+  margin: 0 0 8px;
+  font-size: 42px;
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.intro-text {
+  margin: 0 0 18px;
+  color: #64748b;
+  line-height: 1.7;
+  font-size: 18px;
+}
+
+.alert {
+  border-radius: 14px;
+  padding: 14px 16px;
   margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 700;
 }
 
-.field > span {
+.alert-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.alert-success {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.field label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 900;
   color: #334155;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .input-wrap {
-  height: 54px;
-  border: 1px solid #cbd5e1;
-  border-radius: 15px;
-  background: #fff;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 15px;
-  transition: 0.18s;
+  gap: 10px;
+  height: 58px;
+  border: 1px solid #dbe2ea;
+  border-radius: 16px;
+  padding: 0 14px;
+  background: #ffffff;
+  transition: all 0.2s ease;
 }
 
 .input-wrap:focus-within {
@@ -948,200 +1146,277 @@ async function handleRegister() {
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
-.input-wrap i {
-  font-size: 22px;
+.input-icon {
+  font-size: 18px;
   color: #64748b;
+  min-width: 20px;
+  text-align: center;
 }
 
 .input-wrap input {
   border: 0;
-  outline: 0;
-  background: transparent;
-  flex: 1;
-  font-size: 15px;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  font-size: 17px;
   color: #0f172a;
-  min-width: 0;
-}
-
-.icon-btn {
-  border: 0;
   background: transparent;
-  color: #64748b;
-  cursor: pointer;
-  padding: 4px;
 }
 
-.two-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-
-.form-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 2px 0 18px;
-}
-
-.check {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  color: #64748b;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.check input {
-  width: 18px;
-  height: 18px;
-  accent-color: #2563eb;
-  flex: 0 0 auto;
-}
-
-.terms {
-  margin: 2px 0 18px;
-}
-
-.link-btn {
+.toggle-password {
   border: 0;
   background: transparent;
   color: #2563eb;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.alert {
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 15px;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
   font-weight: 800;
+  cursor: pointer;
   font-size: 14px;
 }
 
-.alert.error {
-  background: #fef2f2;
+.field-error {
+  display: block;
+  margin-top: 6px;
   color: #dc2626;
-  border: 1px solid #fecaca;
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.alert.success {
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.submit-btn {
+.checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.checkbox-wrap input {
+  width: 17px;
+  height: 17px;
+  accent-color: #2563eb;
+}
+
+.agree-box {
+  margin-top: 2px;
+}
+
+.link-btn {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.full-btn {
   width: 100%;
   height: 58px;
   border: 0;
   border-radius: 16px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #fff;
-  font-size: 17px;
-  font-weight: 950;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 900;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+}
+
+.success-btn {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+.success-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.22);
+}
+
+.primary-btn:disabled,
+.success-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.divider {
+  position: relative;
+  margin: 22px 0 18px;
+  text-align: center;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.divider span {
+  position: relative;
+  padding: 0 14px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.social-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.social-btn {
+  width: 100%;
+  height: 54px;
+  border: 1px solid #dbe2ea;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0f172a;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 18px 35px rgba(37, 99, 235, 0.28);
+  transition: all 0.2s ease;
 }
 
-.submit-btn.register {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  box-shadow: 0 18px 35px rgba(22, 163, 74, 0.22);
+.social-btn:hover {
+  border-color: #2563eb;
+  transform: translateY(-1px);
 }
 
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.social-btn span {
+  font-size: 20px;
+  font-weight: 900;
 }
 
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 3px solid rgba(255, 255, 255, 0.45);
-  border-top-color: #fff;
-  border-radius: 999px;
-  animation: spin 0.85s linear infinite;
-}
-
-.strength {
-  height: 7px;
-  border-radius: 999px;
-  background: #e2e8f0;
-  overflow: hidden;
-  margin-top: 9px;
-}
-
-.strength span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #f97316, #16a34a);
-  transition: 0.2s;
-}
-
-.field small {
-  display: block;
-  margin-top: 7px;
-  color: #64748b;
+.oauth-note {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 14px;
   font-weight: 700;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.password-strength {
+  margin-top: 10px;
 }
 
-@media (max-width: 980px) {
+.strength-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.strength-fill {
+  height: 100%;
+  transition: all 0.25s ease;
+}
+
+.strength-fill.weak {
+  background: #ef4444;
+}
+
+.strength-fill.medium {
+  background: #f59e0b;
+}
+
+.strength-fill.good {
+  background: #3b82f6;
+}
+
+.strength-fill.strong {
+  background: #16a34a;
+}
+
+.strength-label {
+  margin-top: 6px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.password-checklist {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.password-checklist li.ok {
+  color: #15803d;
+  font-weight: 700;
+}
+
+@media (max-width: 1080px) {
   .auth-shell {
     grid-template-columns: 1fr;
   }
 
-  .hero-panel {
-    min-height: auto;
-  }
-
-  .hero-panel h1 {
-    font-size: 38px;
-  }
-
-  .hero-stats {
-    margin-bottom: 28px;
+  .hero-content h1 {
+    font-size: 46px;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .auth-page {
-    padding: 16px;
+    padding: 18px;
   }
 
-  .auth-card,
+  .form-panel,
   .hero-panel {
-    padding: 26px;
-    border-radius: 24px;
+    padding: 20px;
+    border-radius: 22px;
   }
 
-  .two-cols,
-  .hero-stats {
+  .hero-content h1 {
+    font-size: 38px;
+  }
+
+  .hero-content p {
+    font-size: 18px;
+  }
+
+  .brand-title {
+    font-size: 28px;
+  }
+
+  .tab-content h2 {
+    font-size: 32px;
+  }
+
+  .grid-2,
+  .hero-features,
+  .tabs {
     grid-template-columns: 1fr;
   }
 
-  .form-row {
-    align-items: flex-start;
+  .row-between {
     flex-direction: column;
-    gap: 10px;
-  }
-
-  .brand h2 {
-    font-size: 24px;
+    align-items: flex-start;
   }
 }
 </style>
