@@ -15,10 +15,38 @@ function normalizeUser(user) {
   }
 }
 
+const TOKEN_KEYS = [
+  'digilib_token',
+  'admin_token',
+  'digilib_admin_token',
+  'librarian_token',
+  'reader_token',
+  'user_token',
+  'token',
+  'auth_token',
+  'accessToken'
+]
+
+const USER_KEYS = [
+  'digilib_user',
+  'admin_user',
+  'digilib_admin_user',
+  'librarian_user',
+  'reader_user',
+  'digilib_reader_user',
+  'user',
+  'auth_user'
+]
+
+function clearAuthStorage() {
+  TOKEN_KEYS.forEach((key) => localStorage.removeItem(key))
+  USER_KEYS.forEach((key) => localStorage.removeItem(key))
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    token: localStorage.getItem('digilib_token') || '',
-    user: JSON.parse(localStorage.getItem('digilib_user') || 'null')
+    token: localStorage.getItem('digilib_token') || localStorage.getItem('admin_token') || '',
+    user: normalizeUser(JSON.parse(localStorage.getItem('digilib_user') || localStorage.getItem('admin_user') || 'null'))
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.token),
@@ -48,6 +76,8 @@ export const useAuthStore = defineStore('auth', {
       this.user = normalizeUser(user)
       localStorage.setItem('digilib_token', this.token)
       localStorage.setItem('digilib_user', JSON.stringify(this.user))
+      localStorage.setItem('admin_token', this.token)
+      localStorage.setItem('admin_user', JSON.stringify(this.user))
       return this.user
     },
     async register(payload) {
@@ -60,6 +90,8 @@ export const useAuthStore = defineStore('auth', {
       this.user = normalizeUser(user)
       localStorage.setItem('digilib_token', this.token)
       localStorage.setItem('digilib_user', JSON.stringify(this.user))
+      localStorage.setItem('admin_token', this.token)
+      localStorage.setItem('admin_user', JSON.stringify(this.user))
       return this.user
     },
     async refreshMe() {
@@ -67,15 +99,13 @@ export const useAuthStore = defineStore('auth', {
       const { data } = await authApi.me()
       this.user = normalizeUser(data)
       localStorage.setItem('digilib_user', JSON.stringify(this.user))
+      localStorage.setItem('admin_user', JSON.stringify(this.user))
       return this.user
     },
     logout() {
       this.token = ''
       this.user = null
-      localStorage.removeItem('digilib_token')
-      localStorage.removeItem('digilib_user')
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      clearAuthStorage()
     }
   }
 })

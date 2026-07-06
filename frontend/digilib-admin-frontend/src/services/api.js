@@ -5,12 +5,36 @@ const api = axios.create({
   timeout: 20000
 })
 
+const TOKEN_KEYS = [
+  'digilib_token',
+  'admin_token',
+  'digilib_admin_token',
+  'librarian_token',
+  'reader_token',
+  'user_token',
+  'token',
+  'auth_token',
+  'accessToken'
+]
+
+const USER_KEYS = [
+  'digilib_user',
+  'admin_user',
+  'digilib_admin_user',
+  'librarian_user',
+  'reader_user',
+  'digilib_reader_user',
+  'user',
+  'auth_user'
+]
+
+function clearAuthStorage() {
+  TOKEN_KEYS.forEach((key) => localStorage.removeItem(key))
+  USER_KEYS.forEach((key) => localStorage.removeItem(key))
+}
+
 api.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem('digilib_token') ||
-    localStorage.getItem('digilib_admin_token') ||
-    localStorage.getItem('token') ||
-    localStorage.getItem('accessToken')
+  const token = TOKEN_KEYS.map((key) => localStorage.getItem(key)).find(Boolean)
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -23,12 +47,7 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error?.response?.status === 401) {
-      localStorage.removeItem('digilib_token')
-      localStorage.removeItem('digilib_admin_token')
-      localStorage.removeItem('token')
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('digilib_user')
-      localStorage.removeItem('digilib_admin_user')
+      clearAuthStorage()
     }
 
     return Promise.reject(error)

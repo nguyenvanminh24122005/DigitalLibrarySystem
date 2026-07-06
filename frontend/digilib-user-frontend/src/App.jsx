@@ -43,8 +43,27 @@ import {
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
 const ADMIN_PORTAL_URL = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5173'
 const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || 'http://localhost:5174'
-const TOKEN_KEYS = ['digilib_token', 'reader_token', 'digilib_admin_token', 'user_token', 'token', 'auth_token', 'accessToken']
-const USER_KEYS = ['digilib_user', 'digilib_reader_user', 'digilib_admin_user', 'user']
+const TOKEN_KEYS = [
+  'digilib_token',
+  'reader_token',
+  'user_token',
+  'admin_token',
+  'digilib_admin_token',
+  'librarian_token',
+  'token',
+  'auth_token',
+  'accessToken',
+]
+const USER_KEYS = [
+  'digilib_user',
+  'digilib_reader_user',
+  'reader_user',
+  'admin_user',
+  'digilib_admin_user',
+  'librarian_user',
+  'user',
+  'auth_user',
+]
 const USER_KEY = 'digilib_user'
 const READER_USER_KEY = 'digilib_reader_user'
 const SETTINGS_KEY = 'digilib_reader_settings'
@@ -101,6 +120,7 @@ function saveToken(token) {
 
   // Giữ thêm alias để các màn hình cũ hoặc service cũ vẫn đọc được.
   localStorage.setItem('reader_token', token)
+  localStorage.setItem('user_token', token)
   localStorage.setItem('token', token)
 }
 
@@ -130,6 +150,8 @@ function saveUser(user) {
 
   // Alias riêng cho Reader để không phá các đoạn code cũ.
   localStorage.setItem(READER_USER_KEY, value)
+  localStorage.setItem('reader_user', value)
+  localStorage.setItem('user', value)
 }
 
 function getSavedSettings() {
@@ -614,7 +636,17 @@ function redirectToSharedLogin() {
 
 function decodeSessionPayload(raw) {
   try {
-    return JSON.parse(decodeURIComponent(escape(atob(raw))))
+    const base64 = String(raw).replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+
+    return JSON.parse(
+      decodeURIComponent(
+        atob(padded)
+          .split('')
+          .map((char) => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
+          .join(''),
+      ),
+    )
   } catch {
     return null
   }

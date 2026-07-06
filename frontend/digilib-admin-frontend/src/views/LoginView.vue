@@ -358,6 +358,29 @@ const LIBRARIAN_PORTAL_URL = import.meta.env.VITE_LIBRARIAN_PORTAL_URL || 'http:
 const READER_PORTAL_URL = import.meta.env.VITE_READER_PORTAL_URL || 'http://localhost:5175'
 const GOOGLE_AUTH_URL = import.meta.env.VITE_GOOGLE_AUTH_URL || ''
 
+const TOKEN_KEYS = [
+  'digilib_token',
+  'admin_token',
+  'digilib_admin_token',
+  'librarian_token',
+  'reader_token',
+  'user_token',
+  'token',
+  'auth_token',
+  'accessToken'
+]
+
+const USER_KEYS = [
+  'digilib_user',
+  'admin_user',
+  'digilib_admin_user',
+  'librarian_user',
+  'reader_user',
+  'digilib_reader_user',
+  'user',
+  'auth_user'
+]
+
 const activeTab = ref(route.query.tab === 'register' ? 'register' : 'login')
 
 const loginLoading = ref(false)
@@ -589,17 +612,25 @@ function base64UrlDecode(value) {
 function saveAuthSession(token, user) {
   const safeUser = user || {}
 
+  TOKEN_KEYS.forEach((key) => localStorage.removeItem(key))
+  USER_KEYS.forEach((key) => localStorage.removeItem(key))
+
   localStorage.setItem('digilib_token', token || '')
   localStorage.setItem('digilib_user', JSON.stringify(safeUser))
 
   localStorage.setItem('admin_token', token || '')
+  localStorage.setItem('digilib_admin_token', token || '')
   localStorage.setItem('admin_user', JSON.stringify(safeUser))
+  localStorage.setItem('digilib_admin_user', JSON.stringify(safeUser))
 
   localStorage.setItem('librarian_token', token || '')
   localStorage.setItem('librarian_user', JSON.stringify(safeUser))
 
   localStorage.setItem('reader_token', token || '')
   localStorage.setItem('reader_user', JSON.stringify(safeUser))
+  localStorage.setItem('digilib_reader_user', JSON.stringify(safeUser))
+  localStorage.setItem('user_token', token || '')
+  localStorage.setItem('user', JSON.stringify(safeUser))
 
   if (loginForm.rememberMe) {
     localStorage.setItem('remember_identifier', loginForm.identifier || '')
